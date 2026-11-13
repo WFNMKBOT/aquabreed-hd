@@ -97,7 +97,7 @@ jobs:
             -Pandroid.injected.signing.key.alias=wadirect \
             -Pandroid.injected.signing.key.password=wadirect123
 
-            - name: Rename APK
+      - name: Rename APK
         run: |
           mv android/app/build/outputs/apk/release/app-release.apk Aquatopia.apk
 
