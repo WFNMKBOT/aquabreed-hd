@@ -48,16 +48,16 @@ jobs:
           fi
           npx cap sync
 
-            - name: Set Fullscreen Landscape Orientation
+      - name: Set Fullscreen Landscape Orientation
         run: |
           sed -i 's/android:name=".MainActivity"/android:name=".MainActivity" android:screenOrientation="sensorLandscape"/' android/app/src/main/AndroidManifest.xml
-          python3 -c '
-          p = "android/app/src/main/java/id/my/ipps/aquabreed/MainActivity.java"
-          code = """package id.my.ipps.aquabreed;
+          cat << 'EOF' > android/app/src/main/java/id/my/ipps/aquabreed/MainActivity.java
+          package id.my.ipps.aquabreed;
           import android.os.Bundle;
           import android.view.View;
           import android.view.WindowManager;
           import com.getcapacitor.BridgeActivity;
+
           public class MainActivity extends BridgeActivity {
               @Override
               public void onCreate(Bundle savedInstanceState) {
@@ -72,9 +72,9 @@ jobs:
                       | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                   );
               }
-          }"""
-          open(p, "w").write(code)
-          '
+          }
+          EOF
+
       - name: Decode Keystore Permanen & Naikkan VersionCode
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
