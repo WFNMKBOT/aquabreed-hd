@@ -13,7 +13,7 @@
     }
     canvas { display: block; width: 100vw; height: 100vh; }
 
-    /* Top HUD - Compact & Glassmorphism */
+    /* Top HUD */
     .hud-top {
       position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
       right: max(12px, env(safe-area-inset-right));
@@ -28,14 +28,14 @@
       display: flex; align-items: center; gap: 6px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
-    .pill-btn { cursor: pointer; transition: transform 0.12s, background 0.15s; }
+    .pill-btn { cursor: pointer; transition: transform 0.12s; }
     .pill-btn:active { transform: scale(0.94); }
-    .badge-hd {
+    .badge-ver {
       background: linear-gradient(135deg, #f59e0b, #d97706); color: #000;
       font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 999px;
     }
 
-    /* Compact Bottom Pill Dock */
+    /* Minimalist Bottom Floating Pill */
     .dock-mini {
       position: fixed; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%;
       transform: translateX(-50%); z-index: 25;
@@ -43,6 +43,7 @@
       border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px;
       padding: 5px 8px; display: flex; align-items: center; gap: 6px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      white-space: nowrap;
     }
     .btn-mini {
       border: none; border-radius: 999px; padding: 6px 12px;
@@ -54,7 +55,7 @@
     .btn-breed-open { background: linear-gradient(135deg, #0284c7, #2563eb); }
     .btn-shop-open { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
 
-    /* Expandable Breeding Drawer */
+    /* Expandable Drawer */
     .drawer {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(105%);
       width: min(560px, 96vw); max-height: 76vh; overflow-y: auto;
@@ -97,7 +98,7 @@
     }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    /* Modal / Inspector */
+    /* Modal */
     .modal-bg {
       position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px;
@@ -124,8 +125,8 @@
 <div class="hud-top">
   <div class="hud-group">
     <div class="pill">
-      <span>🐠 AQUABREED</span>
-      <span class="badge-hd" id="hdCounter">HD</span>
+      <span>🐠 AQUATOPIA</span>
+      <span class="badge-ver">__APP_VERSION__</span>
     </div>
     <div class="pill">🪙 <span id="coinVal">300</span></div>
     <div class="pill">🐟 <span id="fishCount">5</span>/18</div>
@@ -138,7 +139,7 @@
 
 <!-- Minimalist Bottom Floating Pill -->
 <div class="dock-mini">
-  <button class="btn-mini btn-feed" onclick="dropFoodCluster()"> pellets +Pakan</button>
+  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">🍤 Pakan</button>
   <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">🧬 Breeding</button>
   <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">🛒 Toko</button>
 </div>
@@ -191,15 +192,15 @@ const ASSET_PATHS = {
 
 const SPECIES = {
   oranda: {
-    name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80,
+    name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80, fallbackColor: '#f97316',
     tiers: [
       { id: 'oranda_1', name: 'Oranda Red Cap', rarity: 'Common', hue: -12, sat: 0.85, val: 1.05, sell: 60 },
       { id: 'oranda_2', name: 'Oranda Tricolor', rarity: 'Rare', hue: 14, sat: 1.15, val: 1.0, sell: 160 },
-      { id: 'oranda_3', name: 'Oranda Calico HD', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 420 }
+      { id: 'oranda_3', name: 'Oranda Calico Royal', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 420 }
     ]
   },
   betta: {
-    name: 'Cupang Halfmoon', baseSize: 58, speed: 0.65, price: 90,
+    name: 'Cupang Halfmoon', baseSize: 58, speed: 0.65, price: 90, fallbackColor: '#3b82f6',
     tiers: [
       { id: 'betta_1', name: 'Halfmoon Royal Blue', rarity: 'Common', hue: -25, sat: 0.9, val: 0.95, sell: 70 },
       { id: 'betta_2', name: 'Halfmoon Bicolor', rarity: 'Rare', hue: 28, sat: 1.2, val: 1.05, sell: 180 },
@@ -207,15 +208,15 @@ const SPECIES = {
     ]
   },
   guppy: {
-    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60,
+    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60, fallbackColor: '#ef4444',
     tiers: [
       { id: 'guppy_1', name: 'Guppy Blue Grass', rarity: 'Common', hue: 145, sat: 0.85, val: 1.0, sell: 45 },
       { id: 'guppy_2', name: 'Guppy Tuxedo Red', rarity: 'Rare', hue: -18, sat: 1.1, val: 1.0, sell: 130 },
-      { id: 'guppy_3', name: 'Fancy Dragon HD', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 350 }
+      { id: 'guppy_3', name: 'Fancy Dragon Platinum', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 350 }
     ]
   },
   manfish: {
-    name: 'Manfish Angel', baseSize: 68, speed: 0.5, price: 110,
+    name: 'Manfish Angel', baseSize: 68, speed: 0.5, price: 110, fallbackColor: '#eab308',
     tiers: [
       { id: 'manfish_1', name: 'Manfish Silver Zebra', rarity: 'Common', hue: 0, sat: 0.15, val: 1.05, sell: 85 },
       { id: 'manfish_2', name: 'Manfish Golden', rarity: 'Rare', hue: 18, sat: 1.25, val: 1.08, sell: 210 },
@@ -223,7 +224,7 @@ const SPECIES = {
     ]
   },
   arowana: {
-    name: 'Arwana', baseSize: 105, speed: 0.72, price: 220,
+    name: 'Arwana', baseSize: 105, speed: 0.72, price: 220, fallbackColor: '#dc2626',
     tiers: [
       { id: 'arowana_1', name: 'Arwana Silver', rarity: 'Common', hue: 0, sat: 0.12, val: 1.15, sell: 170 },
       { id: 'arowana_2', name: 'Arwana Golden Crossback', rarity: 'Rare', hue: 36, sat: 1.35, val: 1.12, sell: 450 },
@@ -242,10 +243,9 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// Edge Flood-Fill Background Removal (Keeps internal dark scales 100% OPAQUE!)
+// Edge Flood-Fill Background Removal (Keeps internal dark scales 100% SOLID OPAQUE!)
 const processedSprites = {};
 let bgImage = null;
-let loadedCount = 0;
 
 function extractSolidFishSprite(img) {
   const maxDim = 360;
@@ -266,11 +266,9 @@ function extractSolidFishSprite(img) {
 
   const isBgColor = (idx) => {
     const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-    const maxC = Math.max(r, g, b);
-    return maxC < 34; // Pure black studio background threshold
+    return Math.max(r, g, b) < 34;
   };
 
-  // Seed flood-fill strictly from image borders
   for (let x = 0; x < w; x++) {
     const top = x, bot = (h - 1) * w + x;
     if (!visited[top] && isBgColor(top * 4)) { visited[top] = 1; queue[tail++] = top; }
@@ -285,7 +283,7 @@ function extractSolidFishSprite(img) {
   while (head < tail) {
     const p = queue[head++];
     const px = p % w, py = (p / w) | 0;
-    data[p * 4 + 3] = 0; // Make only connected outer background transparent
+    data[p * 4 + 3] = 0;
 
     const neighbors = [
       px > 0 ? p - 1 : -1,
@@ -302,7 +300,6 @@ function extractSolidFishSprite(img) {
     }
   }
 
-  // Soft anti-alias edge feathering on outer boundary only
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
       const p = y * w + x;
@@ -348,9 +345,11 @@ function loadAllAssets() {
     const img = new Image();
     img.src = ASSET_PATHS[key];
     img.onload = () => {
-      processedSprites[`${key}_base`] = extractSolidFishSprite(img);
-      loadedCount++;
-      document.getElementById('hdCounter').textContent = `HD ${loadedCount}/5`;
+      try {
+        processedSprites[`${key}_base`] = extractSolidFishSprite(img);
+      } catch (err) {
+        processedSprites[`${key}_base`] = img;
+      }
     };
   });
 }
@@ -360,11 +359,11 @@ let state = {
   coins: 300,
   unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
   fishes: [
-    { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: 260, y: 180, vx: 0.7, vy: 0.05, phase: 0 },
-    { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: 180, y: 230, vx: -0.5, vy: 0.04, phase: 1.5 },
-    { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: 420, y: 140, vx: 0.6, vy: -0.04, phase: 2.4 },
-    { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: 340, y: 260, vx: -0.8, vy: 0.03, phase: 3.1 },
-    { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: 500, y: 200, vx: -0.45, vy: -0.03, phase: 4.0 }
+    { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0 },
+    { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5 },
+    { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4 },
+    { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1 },
+    { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0 }
   ]
 };
 
@@ -374,7 +373,7 @@ let bubbles = Array.from({ length: 24 }, () => ({
   r: 1.2 + Math.random() * 2.8, speed: 0.4 + Math.random() * 0.9
 }));
 
-// Simple Web Audio
+// Web Audio
 let audioEnabled = true;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playTone(freq, dur = 0.12) {
@@ -406,17 +405,15 @@ canvas.addEventListener('pointerdown', (e) => {
   const tx = e.clientX - rect.left;
   const ty = e.clientY - rect.top;
 
-  // Check if tapped a fish
   for (let i = state.fishes.length - 1; i >= 0; i--) {
     const f = state.fishes[i];
-    const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.55;
+    const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
     if (Math.hypot(tx - f.x, ty - f.y) <= r) {
       inspectFish(f);
       return;
     }
   }
 
-  // Otherwise drop pellet
   pellets.push({ x: tx, y: ty, vy: 0.65 });
   playTone(520, 0.08);
 });
@@ -433,44 +430,67 @@ function dropFoodCluster() {
   showToast('Pelet ditebar! Ikan otomatis makan & tumbuh.');
 }
 
-// Draw Undulating Solid HD Fish
-function drawUndulatingFish(sprite, f, time) {
+// Draw Solid Fish (or Fallback Vector Fish if assets/ folder isn't found)
+function drawFish(f, time) {
   const sp = SPECIES[f.species];
   const scaleFactor = 0.42 + (f.growth / 100) * 0.58;
-  const targetW = sp.baseSize * 1.45 * scaleFactor;
-  const aspect = sprite.height / sprite.width;
-  const targetH = targetW * aspect;
+  const sprite = getTintedSprite(f.species, f.tier);
 
-  ctx.save();
-  ctx.translate(f.x, f.y);
-  const facingLeft = f.vx < 0;
-  if (facingLeft) ctx.scale(-1, 1);
+  if (sprite) {
+    const targetW = sp.baseSize * 1.45 * scaleFactor;
+    const aspect = sprite.height / sprite.width;
+    const targetH = targetW * aspect;
 
-  const slices = 14;
-  const sw = sprite.width / slices;
-  const dw = targetW / slices;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    if (f.vx < 0) ctx.scale(-1, 1);
 
-  for (let i = 0; i < slices; i++) {
-    // Head is on the right side of the sprite (i near slices-1), tail on the left (i near 0)
-    const tailFactor = Math.pow(1 - i / slices, 1.6);
-    const waveY = Math.sin(time * 5.5 + f.phase - i * 0.45) * (4.5 * tailFactor * scaleFactor);
-    ctx.drawImage(
-      sprite,
-      i * sw, 0, sw + 0.6, sprite.height,
-      -targetW / 2 + i * dw, -targetH / 2 + waveY, dw + 0.6, targetH
-    );
+    const slices = 14;
+    const sw = sprite.width / slices;
+    const dw = targetW / slices;
+
+    for (let i = 0; i < slices; i++) {
+      const tailFactor = Math.pow(1 - i / slices, 1.6);
+      const waveY = Math.sin(time * 5.5 + f.phase - i * 0.45) * (4.5 * tailFactor * scaleFactor);
+      ctx.drawImage(
+        sprite,
+        i * sw, 0, sw + 0.6, sprite.height,
+        -targetW / 2 + i * dw, -targetH / 2 + waveY, dw + 0.6, targetH
+      );
+    }
+    ctx.restore();
+  } else {
+    const r = sp.baseSize * 0.45 * scaleFactor;
+    const wag = Math.sin(time * 7 + f.phase) * (r * 0.35);
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    if (f.vx < 0) ctx.scale(-1, 1);
+
+    ctx.fillStyle = sp.fallbackColor;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, 0);
+    ctx.lineTo(-r * 1.55, -r * 0.65 + wag);
+    ctx.lineTo(-r * 1.35, wag * 0.5);
+    ctx.lineTo(-r * 1.55, r * 0.65 + wag);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r, r * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(r * 0.52, -r * 0.12, r * 0.14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(r * 0.56, -r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 // Main Loop
-let lastTime = performance.now();
 function loop(now) {
-  const dt = Math.min(0.05, (now - lastTime) / 1000);
-  lastTime = now;
   const time = now / 1000;
 
-  // 1. Background
   if (bgImage) {
     const imgRatio = bgImage.width / bgImage.height;
     const winRatio = W / H;
@@ -484,7 +504,6 @@ function loop(now) {
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
   }
 
-  // Subtle volumetric light rays
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   const rayGrad = ctx.createLinearGradient(W * 0.5, 0, W * 0.4, H * 0.85);
@@ -497,7 +516,6 @@ function loop(now) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  // 2. Pellets
   for (let i = pellets.length - 1; i >= 0; i--) {
     const p = pellets[i];
     p.y += p.vy;
@@ -506,10 +524,8 @@ function loop(now) {
     if (p.y > H - 24) pellets.splice(i, 1);
   }
 
-  // 3. Fishes
   state.fishes.forEach(f => {
     const sp = SPECIES[f.species];
-    // Seek nearest pellet if available
     if (pellets.length > 0) {
       let nearest = pellets[0], bestD = Infinity;
       pellets.forEach(p => {
@@ -534,7 +550,6 @@ function loop(now) {
       }
     }
 
-    // Clamp speed & wander
     const spd = Math.hypot(f.vx, f.vy);
     const maxSpd = sp.speed * 1.35;
     if (spd > maxSpd) { f.vx = (f.vx / spd) * maxSpd; f.vy = (f.vy / spd) * maxSpd; }
@@ -547,13 +562,9 @@ function loop(now) {
     if (f.y < padTop) { f.y = padTop; f.vy = Math.abs(f.vy); }
     if (f.y > H - padBot) { f.y = H - padBot; f.vy = -Math.abs(f.vy); }
 
-    const sprite = getTintedSprite(f.species, f.tier);
-    if (sprite) {
-      drawUndulatingFish(sprite, f, time);
-    }
+    drawFish(f, time);
   });
 
-  // 4. Bubbles
   ctx.strokeStyle = 'rgba(224, 242, 254, 0.45)';
   ctx.lineWidth = 1;
   bubbles.forEach(b => {
@@ -566,7 +577,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-// UI & Breeding Logic
+// UI & Breeding
 function updateHUD() {
   document.getElementById('coinVal').textContent = state.coins;
   document.getElementById('fishCount').textContent = state.fishes.length;
