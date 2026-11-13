@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AquaBreed HD — Bivarium Aquascape & Genetic Breeding</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #05080d;
+      color: #f1f5f9;
+    }
+
+    #aquariumCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      cursor: crosshair;
+    }
+
+    .glass-hud {
+      background: rgba(6, 10, 16, 0.74);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.68), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    }
+
+    .glass-subcard {
+      background: rgba(13, 21, 33, 0.84);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-subcard:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .badge-common {
+      background: rgba(148, 163, 184, 0.16);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .badge-rare {
+      background: rgba(14, 165, 233, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    .badge-epic {
+      background: linear-gradient(135deg, rgba(217, 70, 239, 0.28), rgba(245, 158, 11, 0.28));
+      color: #fde047;
+      border: 1px solid rgba(250, 204, 21, 0.65);
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.35);
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(6, 9, 14, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 9999px;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92) translateY(10px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes goldPulse {
+      0%, 100% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
+      50% { box-shadow: 0 0 26px rgba(251, 191, 36, 0.85), inset 0 1px 0 rgba(255,255,255,0.6); }
+    }
+    .btn-breed-ready {
+      animation: goldPulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Aquascape Canvas -->
+  <canvas id="aquariumCanvas"></canvas>
+
+  <!-- TOP HUD BAR -->
+  <header class="fixed top-0 left-0 right-0 z-20 p-2.5 sm:p-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+    <!-- Brand & Studio Button -->
+    <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+      <div class="glass-hud rounded-2xl px-3 py-2 flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3C7.5 3 3.7 6.1 2 10.5C3.7 14.9 7.5 18 12 18C14.8 18 17.4 16.8 19.3 14.8L22 17V4L19.3 6.2C17.4 4.2 14.8 3 12 3ZM8.5 11.5C7.7 11.5 7 10.8 7 10C7 9.2 7.7 8.5 8.5 8.5C9.3 8.5 10 9.2 10 10C10 10.8 9.3 11.5 8.5 11.5Z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-xs sm:text-sm font-extrabold tracking-wide text-white">AQUABREED</h1>
+            <span id="hdStatusChip" class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">HD ENGINE</span>
+          </div>
+          <p class="text-[10px] text-slate-400 hidden md:block">Tap air beri pelet • Tap ikan untuk inspeksi</p>
+        </div>
+      </div>
+
+      <!-- HD Asset Studio Button -->
+      <button onclick="openModal('studio')" class="glass-hud hover:border-purple-400/60 active:scale-95 transition rounded-2xl px-3 py-2.5 flex items-center gap-1.5 text-xs font-extrabold text-purple-200 border-purple-500/30">
+        <span>🎨</span>
+        <span class="hidden sm:inline">Studio Aset HD</span>
+        <span class="sm:hidden">Aset</span>
+      </button>
+
+      <!-- Sound Toggle -->
+      <button id="soundToggleBtn" onclick="toggleAudio()" title="Suara Akuarium" class="glass-hud hover:border-cyan-400/50 active:scale-95 transition rounded-2xl w-10 h-10 flex items-center justify-center text-sm">
+        🔇
+      </button>
+    </div>
+
+    <!-- Stats & Navigation Modals -->
+    <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+      <div class="glass-hud rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2">
+        <span class="text-amber-400 text-sm">🪙</span>
+        <div>
+          <div class="text-[9px] uppercase tracking-wider text-slate-400 leading-none">Koin</div>
+          <div id="hudCoins" class="text-xs sm:text-sm font-extrabold text-amber-300 leading-tight">500</div>
+        </div>
+      </div>
+
+      <div class="glass-hud rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2">
+        <span class="text-cyan-400 text-sm">🐠</span>
+        <div>
+          <div class="text-[9px] uppercase tracking-wider text-slate-400 leading-none">Tangki</div>
+          <div id="hudCapacity" class="text-xs sm:text-sm font-extrabold text-slate-100 leading-tight">4/12</div>
+        </div>
+      </div>
+
+      <button onclick="openModal('shop')" class="glass-hud hover:border-amber-400/50 active:scale-95 transition rounded-2xl px-3 py-2.5 flex items-center gap-1.5 text-xs font-bold text-amber-200">
+        <span>🏪</span>
+        <span class="hidden md:inline">Toko</span>
+      </button>
+
+      <button onclick="openModal('dex')" class="glass-hud hover:border-cyan-400/50 active:scale-95 transition rounded-2xl px-3 py-2.5 flex items-center gap-1.5 text-xs font-bold text-cyan-200">
+        <span>📖</span>
+        <span id="hudDexCount" class="text-cyan-300">4/15</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Toast Stack -->
+  <div id="toastStack" class="fixed top-20 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 pointer-events-none w-full max-w-sm px-4"></div>
+
+  <!-- FISH INSPECTOR CARD -->
+  <div id="fishInspector" class="hidden fixed top-20 right-3 sm:right-4 z-20 w-[calc(100%-1.5rem)] max-w-xs glass-hud rounded-2xl p-3.5 animate-pop">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-14 h-12 rounded-xl bg-slate-950/90 border border-cyan-500/25 flex items-center justify-center overflow-hidden shrink-0">
+          <canvas id="inspectorPreviewCanvas" width="84" height="72"></canvas>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <h3 id="inspName" class="text-xs sm:text-sm font-extrabold text-white">Oranda Calico</h3>
+            <span id="inspRarity" class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full badge-epic">Epic</span>
+          </div>
+          <div class="flex items-center gap-2 mt-1 text-[11px]">
+            <span id="inspGender" class="font-bold text-cyan-300">♂ Jantan</span>
+            <span class="text-slate-600">•</span>
+            <span id="inspStageText" class="text-slate-300 font-medium">Adult (100%)</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="closeInspector()" class="w-6 h-6 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 text-xs flex items-center justify-center">✕</button>
+    </div>
+
+    <div class="mt-2.5">
+      <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+        <span>Pertumbuhan</span>
+        <span id="inspGrowthPct" class="font-bold text-emerald-300">100%</span>
+      </div>
+      <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+        <div id="inspGrowthFill" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-300" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <div class="mt-3 flex items-center gap-2">
+      <button id="inspAssignBreedBtn" onclick="assignInspectedToBreed()" class="flex-1 py-1.5 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[11px] font-bold transition">
+        🧬 Pilih Induk
+      </button>
+      <button id="inspSellBtn" onclick="sellInspectedFish()" class="py-1.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition">
+        Jual +480 🪙
+      </button>
+    </div>
+  </div>
+
+  <!-- COLLAPSIBLE BOTTOM BREEDING DOCK -->
+  <section id="breedingDock" class="fixed bottom-3 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-2xl glass-hud rounded-3xl transition-all duration-300 overflow-hidden">
+    <div class="px-4 py-2.5 flex items-center justify-between gap-2 border-b border-white/5">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="toggleBreedingDock()">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+        <h2 class="text-xs sm:text-sm font-extrabold tracking-wide text-white flex items-center gap-1.5">
+          <span>🧬 BREEDING LAB</span>
+          <span id="dockStatusPill" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">Siap Kawin</span>
+        </h2>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="dropPelletBurst()" class="px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold transition">
+          🍤 Pakan
+        </button>
+        <button id="toggleDockBtn" onclick="toggleBreedingDock()" class="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] font-bold transition">
+          ▲ Buka
+        </button>
+      </div>
+    </div>
+
+    <div id="breedingDockBody" class="hidden p-3.5 sm:p-4 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-stretch">
+        <div class="sm:col-span-7 grid grid-cols-2 gap-2.5">
+          <div class="glass-subcard rounded-2xl p-2.5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-cyan-400">♂ Jantan</span>
+              <span class="text-[9px] text-slate-500">Dewasa</span>
+            </div>
+            <select id="maleSelect" onchange="onParentChange()" class="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
+              <option value="">-- Pilih Jantan --</option>
+            </select>
+            <div id="maleSlotInfo" class="mt-1.5 text-[10px] text-slate-400 truncate">Pilih indukan jantan</div>
+          </div>
+
+          <div class="glass-subcard rounded-2xl p-2.5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-pink-400">♀ Betina</span>
+              <span class="text-[9px] text-slate-500">Dewasa</span>
+            </div>
+            <select id="femaleSelect" onchange="onParentChange()" class="w-full bg-slate-950/90 border border-slate-700/80 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-400">
+              <option value="">-- Pilih Betina --</option>
+            </select>
+            <div id="femaleSlotInfo" class="mt-1.5 text-[10px] text-slate-400 truncate">Pilih indukan betina</div>
+          </div>
+        </div>
+
+        <div class="sm:col-span-5 glass-subcard rounded-2xl p-2.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">📊 Hatch Rates</span>
+            <span id="breedMatchTag" class="text-[9px] font-bold text-slate-400">Menunggu Induk</span>
+          </div>
+
+          <div id="hatchRatesBreakdown" class="space-y-1 text-[11px] my-auto">
+            <div class="flex justify-between text-slate-400"><span>Common</span><span class="font-mono">--%</span></div>
+            <div class="flex justify-between text-sky-400"><span>Rare</span><span class="font-mono">--%</span></div>
+            <div class="flex justify-between text-amber-300"><span>Epic Mutasi</span><span class="font-mono">--%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 pt-1">
+        <div class="text-[11px] text-slate-400 truncate">
+          Biaya pemijahan: <strong class="text-amber-300">50 🪙</strong> per siklus
+        </div>
+        <button id="startBreedBtn" onclick="startBreedingCycle()" disabled class="shrink-0 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 disabled:opacity-35 disabled:pointer-events-none text-slate-950 font-extrabold text-xs tracking-wider transition btn-breed-ready">
+          START BREEDING (50 🪙)
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL OVERLAY (STUDIO ASET HD, SHOP, DEX) -->
+  <div id="modalBackdrop" class="hidden fixed inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+
+    <!-- 1. HD ASSET STUDIO MODAL (UPLOAD / AUTO TRANSPARENT KEYING / GITHUB GUIDE) -->
+    <div id="studioModal" class="hidden w-full max-w-2xl glass-hud rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 max-h-[88vh] flex flex-col animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+            <span>🎨 Studio Aset HD & Auto-Transparan</span>
+          </h2>
+          <p class="text-xs text-slate-400">Upload gambar JPG/PNG hitam pekat — otomatis dihapus background-nya & di-render 3D wave!</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="overflow-y-auto py-3.5 space-y-3 pr-1">
+        <!-- Auto Luma Key Sensitivity Control -->
+        <div class="glass-subcard rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-cyan-300">✨ Auto Black-Background Remover (Luma Key)</div>
+            <div class="text-[11px] text-slate-400">Otomatis mengubah piksel hitam menjadi transparan mulus.</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] text-slate-300 font-semibold">Threshold:</label>
+            <input id="lumaThresholdSlider" type="range" min="0" max="75" value="28" oninput="updateThresholdLabel()" class="w-24 accent-cyan-400">
+            <span id="lumaThresholdVal" class="text-xs font-mono text-cyan-300 w-6">28</span>
+          </div>
+        </div>
+
+        <!-- Asset Upload Slots -->
+        <div id="assetSlotsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+
+        <!-- GitHub Repo Folder Structure Info -->
+        <div class="glass-subcard rounded-2xl p-3 border border-cyan-500/20">
+          <div class="text-xs font-extrabold text-white mb-1">📂 Struktur Folder Siap Push ke GitHub:</div>
+          <pre class="text-[10px] sm:text-[11px] font-mono text-cyan-200 bg-slate-950/90 p-2.5 rounded-xl overflow-x-auto leading-relaxed">aquabreed-hd/
+├── index.html
+└── assets/
+    ├── bg-aquascape.jpg
+    ├── oranda.png
+    ├── betta.png
+    ├── guppy.png
+    ├── manfish.png
+    └── arowana.png</pre>
+          <p class="text-[10px] text-slate-400 mt-1.5">Game ini otomatis membaca file di folder <code class="text-cyan-300">assets/</code> saat dibuka dari GitHub Pages atau APK!</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+        <button onclick="resetCustomSprites()" class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-300 text-xs font-bold transition">
+          Reset ke Default
+        </button>
+        <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-extrabold transition">
+          Terapkan ke Akuarium
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. SHOP MODAL -->
+    <div id="shopModal" class="hidden w-full max-w-xl glass-hud rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 max-h-[86vh] flex flex-col animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-white">🏪 Bursa Ikan Hias Aquascape</h2>
+          <p class="text-xs text-slate-400">Beli indukan dewasa (♂/♀) atau perluas kapasitas tangki.</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center">✕</button>
+      </div>
+
+      <div id="shopCatalogList" class="overflow-y-auto py-3.5 space-y-2.5 pr-1"></div>
+
+      <div class="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span class="text-slate-300">Saldo: <strong id="shopCoinsText" class="text-amber-300">500 🪙</strong></span>
+        <button onclick="upgradeCapacity()" class="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 font-bold transition">
+          +4 Kapasitas Tangki (300 🪙)
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. ENCYCLOPEDIA / FISHDEX MODAL -->
+    <div id="dexModal" class="hidden w-full max-w-2xl glass-hud rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 max-h-[86vh] flex flex-col animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-white">📖 Ensiklopedia Mutasi (15 Varian HD)</h2>
+          <p class="text-xs text-slate-400">Kawinkan indukan di Breeding Lab untuk membuka seluruh mutasi.</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center">✕</button>
+      </div>
+
+      <div id="dexCatalogGrid" class="overflow-y-auto py-3.5 space-y-4 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- HATCH CELEBRATION POPUP -->
+  <div id="hatchPopup" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-sm glass-hud rounded-3xl p-6 text-center border border-amber-400/40 animate-pop">
+      <div id="hatchPopupBadge" class="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider badge-epic mb-2">
+        ✨ MUTASI BARU MENETAS!
+      </div>
+      <div class="w-40 h-32 mx-auto my-2 rounded-2xl bg-gradient-to-b from-cyan-950/60 to-slate-950 border border-cyan-500/25 flex items-center justify-center overflow-hidden">
+        <canvas id="hatchPreviewCanvas" width="200" height="160"></canvas>
+      </div>
+      <h3 id="hatchPopupTitle" class="text-lg font-extrabold text-white mt-2">Oranda Calico</h3>
+      <p id="hatchPopupSubtitle" class="text-xs text-slate-300 mt-1 leading-relaxed">
+        Anakan (Fry) telah berenang di akuarium! Beri pelet agar tumbuh dewasa.
+      </p>
+      <button onclick="closeHatchPopup()" class="mt-4 w-full py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-cyan-500/25 transition">
+        Lihat di Akuarium
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * AQUABREED HD — EXTERNAL HD SPRITE LOADER, LUMA KEYER & MULTI-SLICE SWIM ENGINE
+     * ============================================================================
+     */
+
+    // 1. MASTER SPECIES & VARIANT DATABASE (15 VARIANTS ACROSS 5 SPECIES)
+    const SPECIES_DB = {
+      // --- 1. ORANDA GOLDFISH ---
+      oranda_common: {
+        id: 'oranda_common', species: 'oranda', speciesName: 'Oranda Goldfish',
+        name: 'Oranda Red & White', rarity: 'Common', buyPrice: 90, sellPrice: 75, size: 54,
+        spriteFilter: 'saturate(0.85) brightness(1.04)',
+        palette: {
+          baseTop: '#f8fafc', baseBottom: '#cbd5e1', patch1: '#dc2626', patch2: '#ef4444',
+          wen: '#b91c1c', wenHighlight: '#f87171', finBase: 'rgba(254,226,226,0.78)', finTip: 'rgba(239,68,68,0.45)', spots: []
+        },
+        desc: 'Koki bertubuh bulat gempal dengan jambul wen merah menyala dan ekor selendang ganda.'
+      },
+      oranda_rare: {
+        id: 'oranda_rare', species: 'oranda', speciesName: 'Oranda Goldfish',
+        name: 'Oranda Tricolor', rarity: 'Rare', buyPrice: 0, sellPrice: 185, size: 57,
+        spriteFilter: 'hue-rotate(-14deg) saturate(1.15) contrast(1.08)',
+        palette: {
+          baseTop: '#ffffff', baseBottom: '#e2e8f0', patch1: '#ea580c', patch2: '#f97316',
+          wen: '#c2410c', wenHighlight: '#fb923c', finBase: 'rgba(241,245,249,0.82)', finTip: 'rgba(249,115,22,0.45)', spots: ['#0f172a', '#1e293b']
+        },
+        desc: 'Perpaduan kontras tiga warna putih mutiara, jingga terang, dan bercak tinta hitam.'
+      },
+      oranda_epic: {
+        id: 'oranda_epic', species: 'oranda', speciesName: 'Oranda Goldfish',
+        name: 'Oranda Calico', rarity: 'Epic', buyPrice: 0, sellPrice: 480, size: 62,
+        spriteFilter: 'none', // Native HD Calico texture
+        palette: {
+          baseTop: '#fff7ed', baseBottom: '#fed7aa', patch1: '#ea580c', patch2: '#f59e0b',
+          wen: '#dc2626', wenHighlight: '#fca5a5', finBase: 'rgba(255,247,237,0.85)', finTip: 'rgba(56,189,248,0.45)',
+          spots: ['#090d16', '#1e293b', '#0284c7', '#ea580c']
+        },
+        desc: 'Mutasi Calico premium dengan sisik mutiara dan mozaik bintik oranye-hitam-biru.'
+      },
+
+      // --- 2. BETTA HALFMOON ---
+      betta_common: {
+        id: 'betta_common', species: 'betta', speciesName: 'Betta Halfmoon',
+        name: 'Royal Blue Halfmoon', rarity: 'Common', buyPrice: 100, sellPrice: 80, size: 52,
+        spriteFilter: 'none',
+        palette: {
+          bodyHead: '#1e3a8a', bodyTail: '#2563eb', sheen: '#60a5fa',
+          finInner: 'rgba(29,78,216,0.9)', finOuter: 'rgba(56,189,248,0.65)', rayColor: 'rgba(147,197,253,0.45)', marble: false
+        },
+        desc: 'Cupang hias bersirip kipas 180 derajat berwarna biru royal metalik.'
+      },
+      betta_rare: {
+        id: 'betta_rare', species: 'betta', speciesName: 'Betta Halfmoon',
+        name: 'Mustard Gas Bicolor', rarity: 'Rare', buyPrice: 0, sellPrice: 210, size: 55,
+        spriteFilter: 'hue-rotate(155deg) saturate(1.25)',
+        palette: {
+          bodyHead: '#0f766e', bodyTail: '#0284c7', sheen: '#2dd4bf',
+          finInner: 'rgba(3,105,161,0.9)', finOuter: 'rgba(245,158,11,0.82)', rayColor: 'rgba(253,224,71,0.5)', marble: false
+        },
+        desc: 'Tubuh hijau-biru metalik kontras dengan tepian sirip kuning keemasan menyala.'
+      },
+      betta_epic: {
+        id: 'betta_epic', species: 'betta', speciesName: 'Betta Halfmoon',
+        name: 'Galaxy Koi Neon', rarity: 'Epic', buyPrice: 0, sellPrice: 520, size: 58,
+        spriteFilter: 'hue-rotate(68deg) saturate(1.45) contrast(1.12)',
+        palette: {
+          bodyHead: '#312e81', bodyTail: '#be185d', sheen: '#22d3ee',
+          finInner: 'rgba(126,34,206,0.92)', finOuter: 'rgba(244,63,94,0.78)', rayColor: 'rgba(34,211,238,0.65)', marble: true
+        },
+        desc: 'Mutasi langka dengan sisik iridesen galaxy cyan-magenta dan sirip bulan penuh.'
+      },
+
+      // --- 3. GUPPY ---
+      guppy_common: {
+        id: 'guppy_common', species: 'guppy', speciesName: 'Guppy',
+        name: 'Wild Silver-Blue Guppy', rarity: 'Common', buyPrice: 70, sellPrice: 55, size: 42,
+        spriteFilter: 'hue-rotate(185deg) saturate(0.8)',
+        palette: {
+          bodyFront: '#94a3b8', bodyRear: '#38bdf8', tailBase: 'rgba(56,189,248,0.85)', tailTip: 'rgba(251,146,60,0.75)', pattern: 'wild'
+        },
+        desc: 'Guppy lincah dengan kilau perak kebiruan alami dan ekor delta ringan.'
+      },
+      guppy_rare: {
+        id: 'guppy_rare', species: 'guppy', speciesName: 'Guppy',
+        name: 'Blue Grass Guppy', rarity: 'Rare', buyPrice: 0, sellPrice: 165, size: 46,
+        spriteFilter: 'hue-rotate(210deg) saturate(1.3)',
+        palette: {
+          bodyFront: '#0369a1', bodyRear: '#0284c7', tailBase: 'rgba(14,165,233,0.92)', tailTip: 'rgba(125,211,252,0.8)', pattern: 'grass'
+        },
+        desc: 'Ekor kipas lebar biru safir dengan taburan titik-titik hitam halus.'
+      },
+      guppy_epic: {
+        id: 'guppy_epic', species: 'guppy', speciesName: 'Guppy',
+        name: 'Fancy Dragon Guppy', rarity: 'Epic', buyPrice: 0, sellPrice: 440, size: 50,
+        spriteFilter: 'none',
+        palette: {
+          bodyFront: '#38bdf8', bodyRear: '#1d4ed8', tailBase: 'rgba(239,68,68,0.95)', tailTip: 'rgba(249,115,22,0.88)', pattern: 'dragon'
+        },
+        desc: 'Mutasi ekor delta raksasa bermotif mozaik sisik naga merah-oranye membara.'
+      },
+
+      // --- 4. MANFISH / ANGELFISH ---
+      manfish_common: {
+        id: 'manfish_common', species: 'manfish', speciesName: 'Manfish / Angelfish',
+        name: 'Silver Zebra Angelfish', rarity: 'Common', buyPrice: 120, sellPrice: 95, size: 54,
+        spriteFilter: 'saturate(0.15) contrast(1.15)',
+        palette: {
+          bodyLight: '#f1f5f9', bodyDark: '#94a3b8', finColor: 'rgba(203,213,225,0.75)', pattern: 'zebra'
+        },
+        desc: 'Angelfish anggun berbadan pipih tinggi dengan empat garis vertikal hitam pekat.'
+      },
+      manfish_rare: {
+        id: 'manfish_rare', species: 'manfish', speciesName: 'Manfish / Angelfish',
+        name: 'Golden Pearl Angelfish', rarity: 'Rare', buyPrice: 0, sellPrice: 230, size: 57,
+        spriteFilter: 'hue-rotate(26deg) saturate(1.25) brightness(1.08)',
+        palette: {
+          bodyLight: '#fef08a', bodyDark: '#eab308', finColor: 'rgba(254,240,138,0.78)', pattern: 'gold'
+        },
+        desc: 'Sisik mutiara berkilau emas lembut dengan mahkota jingga di dahi.'
+      },
+      manfish_epic: {
+        id: 'manfish_epic', species: 'manfish', speciesName: 'Manfish / Angelfish',
+        name: 'Koi Marble Angelfish', rarity: 'Epic', buyPrice: 0, sellPrice: 560, size: 62,
+        spriteFilter: 'none',
+        palette: {
+          bodyLight: '#ffffff', bodyDark: '#e2e8f0', finColor: 'rgba(248,250,252,0.8)', pattern: 'marble'
+        },
+        desc: 'Mutasi Koi Marble eksotis dengan belang oranye terang dan tinta hitam di sirip panjangnya.'
+      },
+
+      // --- 5. AROWANA ---
+      arowana_common: {
+        id: 'arowana_common', species: 'arowana', speciesName: 'Arowana',
+        name: 'Silver Arowana', rarity: 'Common', buyPrice: 200, sellPrice: 160, size: 86,
+        spriteFilter: 'saturate(0.1) brightness(1.22) contrast(1.05)',
+        palette: {
+          bodyTop: '#64748b', bodyMid: '#cbd5e1', bodyBot: '#f1f5f9', scaleStroke: '#475569', scaleRim: '#f8fafc', finColor: 'rgba(203,213,225,0.82)', glow: null
+        },
+        desc: 'Naga air anggun bertubuh panjang dengan sisik perak cermin yang berkilau.'
+      },
+      arowana_rare: {
+        id: 'arowana_rare', species: 'arowana', speciesName: 'Arowana',
+        name: 'Banjar Red / Golden', rarity: 'Rare', buyPrice: 0, sellPrice: 390, size: 92,
+        spriteFilter: 'hue-rotate(34deg) saturate(1.3) brightness(1.12)',
+        palette: {
+          bodyTop: '#92400e', bodyMid: '#f59e0b', bodyBot: '#fde68a', scaleStroke: '#b45309', scaleRim: '#fef08a', finColor: 'rgba(234,88,12,0.85)', glow: 'rgba(245,158,11,0.35)'
+        },
+        desc: 'Sisik emas hangat yang berkilauan dengan sirip ekor kemerahan.'
+      },
+      arowana_epic: {
+        id: 'arowana_epic', species: 'arowana', speciesName: 'Arowana',
+        name: 'Super Red Arowana', rarity: 'Epic', buyPrice: 0, sellPrice: 950, size: 98,
+        spriteFilter: 'none', // Native HD Super Red Arowana texture
+        palette: {
+          bodyTop: '#7f1d1d', bodyMid: '#dc2626', bodyBot: '#ef4444', scaleStroke: '#450a0a', scaleRim: '#fbbf24', finColor: 'rgba(220,38,38,0.92)', glow: 'rgba(239,68,68,0.5)'
+        },
+        desc: 'Mutasi puncak kasta tertinggi! Sisik merah cabai pekat berbingkai emas metalik.'
+      }
+    };
+
+    const SPECIES_ORDER = ['oranda', 'betta', 'guppy', 'manfish', 'arowana'];
+
+    // 2. HD SPRITE ASSET MANAGER + AUTOMATIC LUMA-KEY BACKGROUND REMOVAL
+    const ASSET_SLOTS = [
+      { key: 'bg', label: 'Background Aquascape', path: 'assets/bg-aquascape.jpg', isBg: true },
+      { key: 'arowana', label: 'Ikan Arwana HD', path: 'assets/arowana.png', isBg: false },
+      { key: 'oranda', label: 'Ikan Koki Oranda HD', path: 'assets/oranda.png', isBg: false },
+      { key: 'betta', label: 'Ikan Cupang Halfmoon HD', path: 'assets/betta.png', isBg: false },
+      { key: 'guppy', label: 'Ikan Guppy HD', path: 'assets/guppy.png', isBg: false },
+      { key: 'manfish', label: 'Ikan Manfish HD', path: 'assets/manfish.png', isBg: false }
+    ];
+
+    const hdAssets = {
+      bg: null,
+      oranda: null,
+      betta: null,
+      guppy: null,
+      manfish: null,
+      arowana: null
+    };
+
+    const rawImagesCache = {}; // Stores original un-keyed images so threshold slider updates live
+    let lumaThreshold = 28;
+
+    /**
+     * Converts pure dark/black backgrounds in uploaded JPG/PNG sprites into smooth
+     * alpha transparency while trimming empty transparent margins so fish scale accurately.
+     */
+    function processSpriteWithLumaKey(img, threshold = 28) {
+      const off = document.createElement('canvas');
+      off.width = img.naturalWidth || img.width;
+      off.height = img.naturalHeight || img.height;
+      const oCtx = off.getContext('2d');
+      oCtx.drawImage(img, 0, 0);
+
+      const imgData = oCtx.getImageData(0, 0, off.width, off.height);
+      const data = imgData.data;
+
+      let minX = off.width, minY = off.height, maxX = 0, maxY = 0;
+      let hasOpaque = false;
+
+      for (let y = 0; y < off.height; y++) {
+        for (let x = 0; x < off.width; x++) {
+          const i = (y * off.width + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const origA = data[i + 3];
+
+          if (origA === 0) continue;
+
+          // Luminance calculation
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+          if (threshold > 0 && lum < threshold) {
+            // Smooth feathering near edge of black background
+            const factor = Math.max(0, (lum - threshold * 0.45) / (threshold * 0.55));
+            data[i + 3] = Math.round(origA * factor * factor);
+          }
+
+          if (data[i + 3] > 20) {
+            hasOpaque = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      oCtx.putImageData(imgData, 0, 0);
+
+      // Auto-crop transparent padding so sprite fills its bounding box cleanly
+      if (hasOpaque && maxX > minX && maxY > minY) {
+        const pad = 4;
+        const sx = Math.max(0, minX - pad);
+        const sy = Math.max(0, minY - pad);
+        const sw = Math.min(off.width - sx, maxX - minX + pad * 2);
+        const sh = Math.min(off.height - sy, maxY - minY + pad * 2);
+
+        const cropped = document.createElement('canvas');
+        cropped.width = sw;
+        cropped.height = sh;
+        cropped.getContext('2d').drawImage(off, sx, sy, sw, sh, 0, 0, sw, sh);
+        return cropped;
+      }
+
+      return off;
+    }
+
+    function autoLoadGitHubAssets() {
+      ASSET_SLOTS.forEach(slot => {
+        const candidates = slot.isBg
+          ? ['assets/bg-aquascape.jpg', 'assets/bg-aquascape.png']
+          : [`assets/${slot.key}.png`, `assets/${slot.key}.jpg`];
+
+        tryLoadCandidateList(slot, candidates, 0);
+      });
+    }
+
+    function tryLoadCandidateList(slot, list, index) {
+      if (index >= list.length) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        rawImagesCache[slot.key] = img;
+        if (slot.isBg) {
+          hdAssets.bg = img;
+        } else {
+          hdAssets[slot.key] = processSpriteWithLumaKey(img, lumaThreshold);
+        }
+        updateHDStatusChip();
+      };
+      img.onerror = () => {
+        tryLoadCandidateList(slot, list, index + 1);
+      };
+      img.src = list[index];
+    }
+
+    function handleUserAssetUpload(slotKey, file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          rawImagesCache[slotKey] = img;
+          if (slotKey === 'bg') {
+            hdAssets.bg = img;
+          } else {
+            hdAssets[slotKey] = processSpriteWithLumaKey(img, lumaThreshold);
+          }
+          updateHDStatusChip();
+          renderStudioModal();
+          showToast(`✨ Aset HD "${slotKey.toUpperCase()}" berhasil dipasang!`);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateThresholdLabel() {
+      lumaThreshold = parseInt(document.getElementById('lumaThresholdSlider').value, 10);
+      document.getElementById('lumaThresholdVal').textContent = lumaThreshold;
+
+      // Re-process all loaded fish sprites live with new threshold
+      Object.keys(rawImagesCache).forEach(key => {
+        if (key !== 'bg' && rawImagesCache[key]) {
+          hdAssets[key] = processSpriteWithLumaKey(rawImagesCache[key], lumaThreshold);
+        }
+      });
+    }
+
+    function resetCustomSprites() {
+      Object.keys(hdAssets).forEach(k => {
+        hdAssets[k] = null;
+        delete rawImagesCache[k];
+      });
+      autoLoadGitHubAssets();
+      updateHDStatusChip();
+      renderStudioModal();
+      showToast('🔄 Aset di-reset ke bawaan.');
+    }
+
+    function updateHDStatusChip() {
+      const loadedCount = Object.values(hdAssets).filter(Boolean).length;
+      const chip = document.getElementById('hdStatusChip');
+      if (loadedCount > 0) {
+        chip.textContent = `HD SPRITE (${loadedCount}/6)`;
+        chip.className = 'text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40';
+      } else {
+        chip.textContent = 'HD ENGINE';
+        chip.className = 'text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/40';
+      }
+    }
+
+    // 3. WEB AUDIO API — UNDERWATER BUBBLE & CHIME SYNTHESIZER
+    class UnderwaterAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = false;
+        this.ambientTimer = null;
+      }
+
+      toggle() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.enabled = !this.enabled;
+        if (this.enabled) {
+          this.playBubblePop(420);
+          this.startAmbientLoop();
+        } else {
+          clearInterval(this.ambientTimer);
+        }
+        return this.enabled;
+      }
+
+      startAmbientLoop() {
+        clearInterval(this.ambientTimer);
+        this.ambientTimer = setInterval(() => {
+          if (this.enabled && Math.random() < 0.55) {
+            this.playBubblePop(260 + Math.random() * 240, 0.04);
+          }
+        }, 2200);
+      }
+
+      playBubblePop(freq = 360, vol = 0.08) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.85, now + 0.11);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+
+      playChime(isEpic = false) {
+        if (!this.enabled || !this.ctx) return;
+        const notes = isEpic ? [523.25, 659.25, 783.99, 1046.5] : [440, 554.37, 659.25];
+        notes.forEach((n, idx) => {
+          const now = this.ctx.currentTime + idx * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(n, now);
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        });
+      }
+    }
+    const audioFX = new UnderwaterAudio();
+
+    function toggleAudio() {
+      const active = audioFX.toggle();
+      document.getElementById('soundToggleBtn').textContent = active ? '🔊' : '🔇';
+      showToast(active ? '🔊 Suara gelembung akuarium aktif' : '🔇 Suara dimatikan');
+    }
+
+    // 4. GAME STATE & PERSISTENCE
+    const SAVE_KEY = 'aquabreed_hd_prod_v1';
+    let state = {
+      coins: 500,
+      maxCapacity: 12,
+      discovered: ['oranda_common', 'betta_common', 'guppy_common', 'manfish_common'],
+      fish: []
+    };
+
+    let pellets = [];
+    let bubbles = [];
+    let microParticles = [];
+    let ripples = [];
+    let plants = [];
+    let pebbles = [];
+    let inspectedFishUid = null;
+    let dockExpanded = false;
+
+    const canvas = document.getElementById('aquariumCanvas');
+    const ctx = canvas.getContext('2d');
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    let rockPattern = null;
+    let woodPattern = null;
+
+    function buildProceduralPatterns() {
+      const rCan = document.createElement('canvas');
+      rCan.width = 96; rCan.height = 96;
+      const rCtx = rCan.getContext('2d');
+      rCtx.fillStyle = '#18222f';
+      rCtx.fillRect(0, 0, 96, 96);
+      for (let i = 0; i < 320; i++) {
+        rCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.22)';
+        rCtx.fillRect(Math.random() * 96, Math.random() * 96, 2 + Math.random() * 4, 2 + Math.random() * 3);
+      }
+      rockPattern = ctx.createPattern(rCan, 'repeat');
+
+      const wCan = document.createElement('canvas');
+      wCan.width = 96; wCan.height = 96;
+      const wCtx = wCan.getContext('2d');
+      wCtx.fillStyle = '#2b1d14';
+      wCtx.fillRect(0, 0, 96, 96);
+      wCtx.strokeStyle = 'rgba(15, 9, 5, 0.45)';
+      wCtx.lineWidth = 1.5;
+      for (let y = 0; y < 96; y += 5) {
+        wCtx.beginPath();
+        wCtx.moveTo(0, y);
+        wCtx.bezierCurveTo(32, y + 3, 64, y - 3, 96, y);
+        wCtx.stroke();
+      }
+      woodPattern = ctx.createPattern(wCan, 'repeat');
+    }
+
+    function init() {
+      buildProceduralPatterns();
+      handleResize();
+      autoLoadGitHubAssets();
+      loadState();
+      refreshHUD();
+      populateBreedingSelects();
+      requestAnimationFrame(renderLoop);
+    }
+
+    function handleResize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+      buildAquascapeScenery();
+    }
+    window.addEventListener('resize', handleResize);
+
+    function buildAquascapeScenery() {
+      plants = [];
+      const valCount = Math.max(12, Math.floor(W / 65));
+      for (let i = 0; i < valCount; i++) {
+        plants.push({
+          type: 'vallisneria',
+          x: (i / valCount) * W + (Math.random() * 30 - 15),
+          blades: 3 + Math.floor(Math.random() * 3),
+          height: H * (0.26 + Math.random() * 0.24),
+          hue: 140 + Math.random() * 25,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+
+      const fernAnchors = [0.14, 0.22, 0.30, 0.68, 0.77, 0.86];
+      fernAnchors.forEach(ratio => {
+        plants.push({
+          type: 'javafern',
+          x: W * ratio,
+          leaves: 5 + Math.floor(Math.random() * 4),
+          height: 65 + Math.random() * 55,
+          hue: 128 + Math.random() * 22,
+          phase: Math.random() * Math.PI * 2
+        });
+      });
+
+      pebbles = [];
+      const pebbleCount = Math.floor(W / 18);
+      for (let i = 0; i < pebbleCount; i++) {
+        pebbles.push({
+          x: Math.random() * W,
+          y: H - 8 - Math.random() * 18,
+          rx: 3 + Math.random() * 7,
+          ry: 2 + Math.random() * 4,
+          color: ['#1c1917', '#292524', '#3f3a36', '#1e293b'][Math.floor(Math.random() * 4)]
+        });
+      }
+
+      if (bubbles.length === 0) {
+        for (let i = 0; i < 36; i++) {
+          bubbles.push({
+            x: W * 0.84 + (Math.random() - 0.5) * 28,
+            y: Math.random() * H,
+            r: 1.2 + Math.random() * 3.4,
+            vy: 0.55 + Math.random() * 1.1,
+            wobble: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      if (microParticles.length === 0) {
+        for (let i = 0; i < 55; i++) {
+          microParticles.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: 0.7 + Math.random() * 1.4,
+            vx: (Math.random() - 0.5) * 0.25,
+            vy: (Math.random() - 0.5) * 0.18,
+            alpha: 0.15 + Math.random() * 0.45
+          });
+        }
+      }
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.fish) && parsed.fish.length > 0) {
+            state = parsed;
+            state.fish.forEach(f => {
+              f.x = f.x || (W * 0.2 + Math.random() * W * 0.6);
+              f.y = f.y || (H * 0.25 + Math.random() * H * 0.45);
+              f.vx = (Math.random() > 0.5 ? 1 : -1) * (0.65 + Math.random() * 0.5);
+              f.vy = (Math.random() - 0.5) * 0.25;
+              f.facing = f.vx >= 0 ? 1 : -1;
+              f.swimPhase = Math.random() * Math.PI * 2;
+              f.turnTimer = 120 + Math.random() * 200;
+            });
+            return;
+          }
+        }
+      } catch (err) {}
+
+      state = {
+        coins: 500,
+        maxCapacity: 12,
+        discovered: ['oranda_common', 'betta_common', 'guppy_common', 'manfish_common', 'arowana_epic'],
+        fish: [
+          spawnFishObject('oranda_common', 'M', 100),
+          spawnFishObject('oranda_common', 'F', 100),
+          spawnFishObject('arowana_epic', 'M', 100),
+          spawnFishObject('betta_common', 'F', 100)
+        ]
+      };
+      saveState();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function spawnFishObject(catalogId, gender = null, growth = 15) {
+      return {
+        uid: 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        catalogId,
+        gender: gender || (Math.random() > 0.5 ? 'M' : 'F'),
+        growth,
+        x: W * (0.25 + Math.random() * 0.5),
+        y: H * (0.25 + Math.random() * 0.45),
+        vx: (Math.random() > 0.5 ? 1 : -1) * (0.65 + Math.random() * 0.55),
+        vy: (Math.random() - 0.5) * 0.28,
+        facing: 1,
+        swimPhase: Math.random() * Math.PI * 2,
+        turnTimer: 100 + Math.random() * 220
+      };
+    }
+
+    function getLifeStageLabel(growth) {
+      if (growth >= 100) return 'Adult (100%)';
+      if (growth >= 40) return `Juvenile (${growth}%)`;
+      return `Fry (${growth}%)`;
+    }
+
+    // 5. AQUASCAPE BACKGROUND RENDERER (REAL HD PHOTO COVER + VOLUMETRIC OVERLAYS)
+    function drawAquascapeBackground(timeSec) {
+      if (hdAssets.bg) {
+        // Object-fit: cover scaling for external HD aquascape photo
+        const img = hdAssets.bg;
+        const imgRatio = img.width / img.height;
+        const winRatio = W / H;
+        let drawW, drawH, offsetX, offsetY;
+
+        if (winRatio > imgRatio) {
+          drawW = W;
+          drawH = W / imgRatio;
+          offsetX = 0;
+          offsetY = (H - drawH) * 0.5;
+        } else {
+          drawH = H;
+          drawW = H * imgRatio;
+          offsetX = (W - drawW) * 0.5;
+          offsetY = 0;
+        }
+        ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+        // Subtle atmospheric underwater vignette & live animated god rays
+        const vig = ctx.createRadialGradient(W * 0.5, H * 0.45, W * 0.2, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+        vig.addColorStop(0, 'rgba(6, 19, 32, 0.06)');
+        vig.addColorStop(1, 'rgba(3, 7, 13, 0.52)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, W, H);
+      } else {
+        // High-Detail Procedural Aquascape Fallback
+        const waterGrad = ctx.createLinearGradient(0, 0, 0, H);
+        waterGrad.addColorStop(0, '#0d2b3e');
+        waterGrad.addColorStop(0.25, '#091f30');
+        waterGrad.addColorStop(0.68, '#061320');
+        waterGrad.addColorStop(1, '#04080e');
+        ctx.fillStyle = waterGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(12, 26, 40, 0.65)';
+        drawSeiryuStone(ctx, W * 0.24, H - 24, 95, 130, -0.15);
+        drawSeiryuStone(ctx, W * 0.72, H - 24, 110, 145, 0.18);
+        ctx.restore();
+
+        plants.filter(p => p.type === 'vallisneria').forEach(p => {
+          for (let b = 0; b < p.blades; b++) {
+            const bx = p.x + (b - p.blades / 2) * 6;
+            const sway = Math.sin(timeSec * 1.25 + p.phase + b * 0.6) * 22;
+            const grad = ctx.createLinearGradient(bx, H - 20, bx + sway, H - 20 - p.height);
+            grad.addColorStop(0, `hsla(${p.hue}, 52%, 14%, 0.85)`);
+            grad.addColorStop(1, `hsla(${p.hue + 10}, 62%, 30%, 0.65)`);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(bx, H - 18);
+            ctx.quadraticCurveTo(bx + sway * 0.45, H - 18 - p.height * 0.55, bx + sway, H - 18 - p.height);
+            ctx.stroke();
+          }
+        });
+
+        drawDriftwoodScenery();
+        drawDetailedHardscapeRocks();
+
+        plants.filter(p => p.type === 'javafern').forEach(p => {
+          for (let l = 0; l < p.leaves; l++) {
+            const spreadAngle = ((l / (p.leaves - 1)) - 0.5) * 1.35 + Math.sin(timeSec * 1.1 + p.phase + l) * 0.08;
+            const leafLen = p.height * (0.75 + (l % 2) * 0.25);
+            ctx.save();
+            ctx.translate(p.x, H - 26);
+            ctx.rotate(spreadAngle);
+            const leafGrad = ctx.createLinearGradient(0, 0, 0, -leafLen);
+            leafGrad.addColorStop(0, '#064e3b');
+            leafGrad.addColorStop(0.6, '#15803d');
+            leafGrad.addColorStop(1, '#4ade80');
+            ctx.fillStyle = leafGrad;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(-9, -leafLen * 0.5, 0, -leafLen);
+            ctx.quadraticCurveTo(9, -leafLen * 0.5, 0, 0);
+            ctx.fill();
+            ctx.restore();
+          }
+        });
+
+        const soilGrad = ctx.createLinearGradient(0, H - 34, 0, H);
+        soilGrad.addColorStop(0, '#292118');
+        soilGrad.addColorStop(0.45, '#1c1610');
+        soilGrad.addColorStop(1, '#0c0907');
+        ctx.fillStyle = soilGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, H - 24);
+        ctx.quadraticCurveTo(W * 0.25, H - 34, W * 0.5, H - 25);
+        ctx.quadraticCurveTo(W * 0.75, H - 18, W, H - 27);
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+
+        pebbles.forEach(pb => {
+          ctx.fillStyle = pb.color;
+          ctx.beginPath();
+          ctx.ellipse(pb.x, pb.y, pb.rx, pb.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      // Live Volumetric God Rays (overlay on both HD image and fallback)
+      ctx.save();
+      for (let i = 0; i < 5; i++) {
+        const baseX = W * (0.14 + i * 0.17) + Math.sin(timeSec * 0.45 + i * 1.3) * 40;
+        const alpha = (hdAssets.bg ? 0.035 : 0.06) + Math.sin(timeSec * 0.9 + i) * 0.015;
+        const rayGrad = ctx.createLinearGradient(baseX, 0, baseX + 40, H * 0.85);
+        rayGrad.addColorStop(0, `rgba(186, 230, 253, ${alpha * 1.8})`);
+        rayGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = rayGrad;
+        ctx.beginPath();
+        ctx.moveTo(baseX - 30, 0);
+        ctx.lineTo(baseX + 30, 0);
+        ctx.lineTo(baseX + 150, H * 0.85);
+        ctx.lineTo(baseX - 90, H * 0.85);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Floating Plankton & Aerator Bubbles
+      microParticles.forEach(mp => {
+        mp.x += mp.vx;
+        mp.y += mp.vy;
+        if (mp.x < 0) mp.x = W;
+        if (mp.x > W) mp.x = 0;
+        if (mp.y < 0) mp.y = H - 30;
+        if (mp.y > H - 30) mp.y = 0;
+        ctx.fillStyle = `rgba(186, 230, 253, ${mp.alpha})`;
+        ctx.beginPath();
+        ctx.arc(mp.x, mp.y, mp.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      bubbles.forEach(b => {
+        b.y -= b.vy;
+        b.wobble += 0.05;
+        const bx = b.x + Math.sin(b.wobble) * 5;
+        if (b.y < 12) {
+          b.y = H - 28;
+          b.x = W * 0.84 + (Math.random() - 0.5) * 26;
+        }
+        const bGrad = ctx.createRadialGradient(bx - b.r * 0.3, b.y - b.r * 0.3, 0.2, bx, b.y, b.r);
+        bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.82)');
+        bGrad.addColorStop(0.6, 'rgba(186, 230, 253, 0.25)');
+        bGrad.addColorStop(1, 'rgba(56, 189, 248, 0.55)');
+        ctx.fillStyle = bGrad;
+        ctx.beginPath();
+        ctx.arc(bx, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawSeiryuStone(c, x, y, w, h, tilt) {
+      c.save();
+      c.translate(x, y);
+      c.rotate(tilt);
+      c.beginPath();
+      c.moveTo(-w * 0.5, 0);
+      c.lineTo(-w * 0.35, -h * 0.72);
+      c.lineTo(-w * 0.05, -h);
+      c.lineTo(w * 0.28, -h * 0.78);
+      c.lineTo(w * 0.5, 0);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+
+    function drawDriftwoodScenery() {
+      ctx.save();
+      ctx.fillStyle = woodPattern || '#2b1d14';
+      ctx.strokeStyle = '#170f0a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.08, H - 18);
+      ctx.bezierCurveTo(W * 0.14, H - 130, W * 0.26, H - 185, W * 0.38, H - 165);
+      ctx.bezierCurveTo(W * 0.31, H - 150, W * 0.21, H - 115, W * 0.18, H - 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawDetailedHardscapeRocks() {
+      const rockConfigs = [
+        { x: W * 0.15, y: H - 18, w: 115, h: 78, tilt: -0.08 },
+        { x: W * 0.81, y: H - 18, w: 130, h: 86, tilt: 0.1 }
+      ];
+      rockConfigs.forEach(rk => {
+        ctx.save();
+        ctx.fillStyle = rockPattern || '#1e293b';
+        drawSeiryuStone(ctx, rk.x, rk.y, rk.w, rk.h, rk.tilt);
+        ctx.fillStyle = 'rgba(22, 101, 52, 0.78)';
+        ctx.beginPath();
+        ctx.ellipse(rk.x - rk.w * 0.05, rk.y - rk.h * 0.72, rk.w * 0.24, 7, rk.tilt, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    // 6. MULTI-SLICE WAVE UNDULATION FOR REAL HD SPRITE IMAGES + FALLBACK
+    function renderFishHD(c, catalogId, scale, swimPhase, facing, isInspected = false) {
+      const item = SPECIES_DB[catalogId];
+      if (!item) return;
+
+      c.save();
+      c.scale(facing * scale, scale);
+
+      if (isInspected) {
+        c.save();
+        c.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+        c.lineWidth = 1.8;
+        c.setLineDash([6, 4]);
+        c.beginPath();
+        c.ellipse(0, 0, item.size * 0.95, item.size * 0.62, 0, 0, Math.PI * 2);
+        c.stroke();
+        c.restore();
+      }
+
+      const hdSprite = hdAssets[item.species];
+
+      if (hdSprite) {
+        // Render Real HD Sprite with Multi-Slice Spine Wave Undulation (makes static PNG swim organically!)
+        c.save();
+        if (item.spriteFilter && item.spriteFilter !== 'none') {
+          c.filter = item.spriteFilter;
+        }
+        if (item.rarity === 'Epic') {
+          c.shadowColor = 'rgba(250, 204, 21, 0.35)';
+          c.shadowBlur = 14;
+        }
+
+        const aspect = hdSprite.width / hdSprite.height;
+        const targetW = item.size * 1.95;
+        const targetH = targetW / aspect;
+        const slices = 18;
+        const sliceSrcW = hdSprite.width / slices;
+        const sliceDstW = targetW / slices;
+
+        for (let i = 0; i < slices; i++) {
+          // Tail (left side, i=0) waves more than head (right side, i=slices-1)
+          const tailRatio = 1 - (i / slices);
+          const waveY = Math.sin(swimPhase - tailRatio * 2.8) * (4.8 * tailRatio * tailRatio);
+
+          c.drawImage(
+            hdSprite,
+            i * sliceSrcW, 0, sliceSrcW + 0.6, hdSprite.height,
+            -targetW * 0.5 + i * sliceDstW, -targetH * 0.5 + waveY, sliceDstW + 0.6, targetH
+          );
+        }
+        c.restore();
+      } else {
+        // Crisp Procedural Fallback Renderer
+        const bodyBend = Math.sin(swimPhase) * 3.2;
+        const tailSwing = Math.sin(swimPhase - 0.65) * 0.32;
+        const finFlutter = Math.sin(swimPhase + 0.9) * 0.16;
+
+        switch (item.species) {
+          case 'oranda': drawOrandaFallback(c, item, bodyBend, tailSwing, finFlutter); break;
+          case 'betta': drawBettaFallback(c, item, bodyBend, tailSwing, finFlutter); break;
+          case 'guppy': drawGuppyFallback(c, item, bodyBend, tailSwing, finFlutter); break;
+          case 'manfish': drawManfishFallback(c, item, bodyBend, tailSwing, finFlutter); break;
+          case 'arowana': drawArowanaFallback(c, item, bodyBend, tailSwing, finFlutter); break;
+        }
+      }
+
+      c.restore();
+    }
+
+    // --- FALLBACK VECTOR RENDERERS ---
+    function drawOrandaFallback(c, item, bend, tailSwing, finFlutter) {
+      const p = item.palette;
+      c.save();
+      c.translate(-19, bend * 0.45);
+      c.rotate(tailSwing);
+      const tailGrad = c.createLinearGradient(0, 0, -38, 0);
+      tailGrad.addColorStop(0, p.finBase);
+      tailGrad.addColorStop(1, p.finTip);
+      c.fillStyle = tailGrad;
+      c.beginPath();
+      c.moveTo(0, -2);
+      c.bezierCurveTo(-16, -24, -40, -18, -36, -2);
+      c.bezierCurveTo(-24, 3, -38, 19, -30, 25);
+      c.bezierCurveTo(-14, 18, -5, 8, 0, 4);
+      c.closePath();
+      c.fill();
+      c.restore();
+
+      c.fillStyle = p.finBase;
+      c.beginPath();
+      c.moveTo(-8, -16);
+      c.quadraticCurveTo(2, -33 + finFlutter * 12, 13, -15);
+      c.fill();
+
+      const bodyGrad = c.createRadialGradient(5, -6, 3, 0, 0, 25);
+      bodyGrad.addColorStop(0, p.baseTop);
+      bodyGrad.addColorStop(0.75, p.baseBottom);
+      bodyGrad.addColorStop(1, '#64748b');
+      c.fillStyle = bodyGrad;
+      c.beginPath();
+      c.ellipse(0, bend * 0.15, 23, 18, 0, 0, Math.PI * 2);
+      c.fill();
+
+      c.save();
+      c.beginPath();
+      c.ellipse(0, bend * 0.15, 23, 18, 0, 0, Math.PI * 2);
+      c.clip();
+      c.fillStyle = p.patch1;
+      c.beginPath(); c.arc(5, -6, 12, 0, Math.PI * 2); c.fill();
+      c.fillStyle = p.patch2;
+      c.beginPath(); c.arc(-9, 3, 9, 0, Math.PI * 2); c.fill();
+      if (p.spots.length > 0) {
+        [[-11, -5, 4.2], [-3, 6, 4.8], [4, 2, 3.6], [10, -8, 3.8], [-15, 5, 3.5]].forEach(([sx, sy, sr], idx) => {
+          c.fillStyle = p.spots[idx % p.spots.length];
+          c.beginPath(); c.arc(sx, sy, sr, 0, Math.PI * 2); c.fill();
+        });
+      }
+      c.restore();
+
+      [[15, -8, 6.2], [19, -4, 5.8], [21, 0, 5.2], [13, -11, 5.2]].forEach(([wx, wy, wr]) => {
+        const wGrad = c.createRadialGradient(wx - 1.5, wy - 1.5, 0.5, wx, wy, wr);
+        wGrad.addColorStop(0, p.wenHighlight);
+        wGrad.addColorStop(0.65, p.wen);
+        wGrad.addColorStop(1, '#7f1d1d');
+        c.fillStyle = wGrad;
+        c.beginPath(); c.arc(wx, wy, wr, 0, Math.PI * 2); c.fill();
+      });
+
+      drawGlossyEye(c, 16, 2.5, 3.6);
+    }
+
+    function drawBettaFallback(c, item, bend, tailSwing, finFlutter) {
+      const p = item.palette;
+      c.save();
+      c.translate(-14, bend * 0.45);
+      c.rotate(tailSwing * 0.85);
+      const tailGrad = c.createRadialGradient(0, 0, 2, 0, 0, 30);
+      tailGrad.addColorStop(0, p.finInner);
+      tailGrad.addColorStop(1, p.finOuter);
+      c.fillStyle = tailGrad;
+      c.beginPath();
+      c.moveTo(0, -4);
+      c.arc(-2, 0, 29, -Math.PI * 0.54, Math.PI * 0.54, true);
+      c.closePath();
+      c.fill();
+      c.restore();
+
+      c.fillStyle = p.finInner;
+      c.beginPath(); c.moveTo(-11, -7); c.bezierCurveTo(-14, -26, 4, -27 + finFlutter * 10, 9, -7); c.fill();
+      c.fillStyle = p.finOuter;
+      c.beginPath(); c.moveTo(-13, 7); c.bezierCurveTo(-15, 25, 6, 26 - finFlutter * 10, 11, 7); c.fill();
+
+      const bodyGrad = c.createLinearGradient(-16, -6, 21, 6);
+      bodyGrad.addColorStop(0, p.bodyTail);
+      bodyGrad.addColorStop(0.55, p.sheen);
+      bodyGrad.addColorStop(1, p.bodyHead);
+      c.fillStyle = bodyGrad;
+      c.beginPath();
+      c.ellipse(2, bend * 0.15, 20, 8.8, 0, 0, Math.PI * 2);
+      c.fill();
+
+      drawGlossyEye(c, 15, -1.5, 3.0);
+    }
+
+    function drawGuppyFallback(c, item, bend, tailSwing, finFlutter) {
+      const p = item.palette;
+      c.save();
+      c.translate(-11, bend * 0.5);
+      c.rotate(tailSwing * 1.1);
+      const tGrad = c.createLinearGradient(0, 0, -28, 0);
+      tGrad.addColorStop(0, p.tailBase);
+      tGrad.addColorStop(1, p.tailTip);
+      c.fillStyle = tGrad;
+      c.beginPath();
+      c.moveTo(0, -2.5);
+      c.lineTo(-27, -18);
+      c.quadraticCurveTo(-31, 0, -27, 18);
+      c.lineTo(0, 2.5);
+      c.closePath();
+      c.fill();
+      c.restore();
+
+      const bGrad = c.createLinearGradient(-12, 0, 17, 0);
+      bGrad.addColorStop(0, p.bodyRear);
+      bGrad.addColorStop(1, p.bodyFront);
+      c.fillStyle = bGrad;
+      c.beginPath();
+      c.ellipse(2, bend * 0.15, 16, 6.2, 0, 0, Math.PI * 2);
+      c.fill();
+
+      drawGlossyEye(c, 12, -1, 2.5);
+    }
+
+    function drawManfishFallback(c, item, bend, tailSwing, finFlutter) {
+      const p = item.palette;
+      c.fillStyle = p.finColor;
+      c.beginPath(); c.moveTo(-6, -12); c.quadraticCurveTo(-14, -38, -26, -46 + finFlutter * 9); c.quadraticCurveTo(-4, -26, 7, -11); c.fill();
+      c.beginPath(); c.moveTo(-6, 12); c.quadraticCurveTo(-14, 38, -26, 46 - finFlutter * 9); c.quadraticCurveTo(-4, 26, 7, 11); c.fill();
+
+      const bGrad = c.createLinearGradient(20, -14, -14, 14);
+      bGrad.addColorStop(0, p.bodyLight);
+      bGrad.addColorStop(1, p.bodyDark);
+      c.fillStyle = bGrad;
+      c.beginPath();
+      c.moveTo(21, 0); c.lineTo(0, -17); c.lineTo(-17, 0); c.lineTo(0, 17);
+      c.closePath();
+      c.fill();
+
+      c.save();
+      c.beginPath(); c.moveTo(21, 0); c.lineTo(0, -17); c.lineTo(-17, 0); c.lineTo(0, 17); c.closePath(); c.clip();
+      if (p.pattern === 'zebra') {
+        c.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        c.fillRect(-11, -18, 4.2, 36); c.fillRect(0, -18, 4.5, 36); c.fillRect(10, -18, 3.2, 36);
+      } else if (p.pattern === 'gold') {
+        c.fillStyle = '#ea580c'; c.beginPath(); c.arc(3, -10, 11, 0, Math.PI * 2); c.fill();
+      } else if (p.pattern === 'marble') {
+        c.fillStyle = '#ea580c'; c.beginPath(); c.arc(6, -6, 10, 0, Math.PI * 2); c.arc(-7, 4, 8, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#090d16'; c.beginPath(); c.arc(-2, -4, 5, 0, Math.PI * 2); c.arc(7, 5, 4.5, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+
+      drawGlossyEye(c, 12, -2, 3.0);
+    }
+
+    function drawArowanaFallback(c, item, bend, tailSwing, finFlutter) {
+      const p = item.palette;
+      if (p.glow) { c.shadowColor = p.glow; c.shadowBlur = 18; }
+
+      c.save();
+      c.translate(-35, bend * 0.6);
+      c.rotate(tailSwing * 0.85);
+      c.fillStyle = p.finColor;
+      c.beginPath(); c.ellipse(-9, 0, 12, 9, 0, 0, Math.PI * 2); c.fill();
+      c.restore();
+
+      c.fillStyle = p.finColor;
+      c.beginPath(); c.moveTo(-14, -10); c.quadraticCurveTo(-26, -18, -35, -8); c.fill();
+      c.beginPath(); c.moveTo(-8, 10); c.quadraticCurveTo(-24, 19, -35, 8); c.fill();
+
+      const bGrad = c.createLinearGradient(0, -13, 0, 13);
+      bGrad.addColorStop(0, p.bodyTop);
+      bGrad.addColorStop(0.5, p.bodyMid);
+      bGrad.addColorStop(1, p.bodyBot);
+      c.fillStyle = bGrad;
+      c.beginPath();
+      c.moveTo(39, -3);
+      c.quadraticCurveTo(10, -14 + bend * 0.25, -36, -8 + bend * 0.45);
+      c.lineTo(-36, 8 + bend * 0.45);
+      c.quadraticCurveTo(10, 14 + bend * 0.25, 39, 2);
+      c.closePath();
+      c.fill();
+
+      c.save();
+      c.beginPath();
+      c.moveTo(39, -3);
+      c.quadraticCurveTo(10, -14 + bend * 0.25, -36, -8 + bend * 0.45);
+      c.lineTo(-36, 8 + bend * 0.45);
+      c.quadraticCurveTo(10, 14 + bend * 0.25, 39, 2);
+      c.closePath();
+      c.clip();
+      for (let row = -1; row <= 1; row++) {
+        for (let sx = -28; sx <= 20; sx += 7.5) {
+          const sy = row * 5 + (sx % 2 === 0 ? 1.5 : -1.5) + bend * 0.2;
+          c.strokeStyle = p.scaleStroke;
+          c.lineWidth = 1.4;
+          c.beginPath(); c.arc(sx, sy, 4.2, -Math.PI * 0.42, Math.PI * 0.42); c.stroke();
+          c.strokeStyle = p.scaleRim;
+          c.lineWidth = 0.7;
+          c.beginPath(); c.arc(sx - 0.8, sy, 3.6, -Math.PI * 0.35, Math.PI * 0.35); c.stroke();
+        }
+      }
+      c.restore();
+
+      c.strokeStyle = p.scaleRim;
+      c.lineWidth = 2.2;
+      c.beginPath(); c.moveTo(38, 1); c.quadraticCurveTo(45, 4 + finFlutter * 6, 48, 8); c.stroke();
+
+      c.shadowBlur = 0;
+      drawGlossyEye(c, 28, -3.2, 3.2);
+    }
+
+    function drawGlossyEye(c, x, y, r) {
+      const irisGrad = c.createRadialGradient(x, y, r * 0.2, x, y, r);
+      irisGrad.addColorStop(0, '#fef08a');
+      irisGrad.addColorStop(0.75, '#eab308');
+      irisGrad.addColorStop(1, '#713f12');
+      c.fillStyle = irisGrad;
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#06090e';
+      c.beginPath(); c.arc(x + r * 0.22, y, r * 0.56, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(x + r * 0.38, y - r * 0.32, r * 0.28, 0, Math.PI * 2); c.fill();
+    }
+
+    // 7. MAIN SIMULATION LOOP
+    let prevTimestamp = 0;
+    function renderLoop(timestamp) {
+      const dt = Math.min((timestamp - prevTimestamp) / 16.67, 2);
+      prevTimestamp = timestamp;
+
+      drawAquascapeBackground(timestamp * 0.001);
+      updateRipples(dt);
+      updatePellets(dt);
+      updateFishSimulation(dt);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    function updateRipples(dt) {
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.r += 1.4 * dt;
+        rp.alpha -= 0.025 * dt;
+        if (rp.alpha <= 0) { ripples.splice(i, 1); continue; }
+        ctx.strokeStyle = `rgba(125, 211, 252, ${rp.alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.42, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function updatePellets(dt) {
+      for (let i = pellets.length - 1; i >= 0; i--) {
+        const p = pellets[i];
+        p.y += p.vy * dt;
+        p.x += Math.sin(p.y * 0.06) * 0.22;
+
+        const pGrad = ctx.createRadialGradient(p.x - 1, p.y - 1, 0.5, p.x, p.y, 4);
+        pGrad.addColorStop(0, '#fcd34d');
+        pGrad.addColorStop(0.6, '#b45309');
+        pGrad.addColorStop(1, '#451a03');
+        ctx.fillStyle = pGrad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (p.y >= H - 26) pellets.splice(i, 1);
+      }
+    }
+
+    function updateFishSimulation(dt) {
+      const padX = 72;
+      const padTop = 85;
+      const padBot = H - 85;
+
+      state.fish.forEach(fish => {
+        const info = SPECIES_DB[fish.catalogId];
+        if (!info) return;
+
+        let targetPellet = null;
+        let bestDist = 320;
+        pellets.forEach(p => {
+          const d = Math.hypot(p.x - fish.x, p.y - fish.y);
+          if (d < bestDist) { bestDist = d; targetPellet = p; }
+        });
+
+        if (targetPellet) {
+          const angle = Math.atan2(targetPellet.y - fish.y, targetPellet.x - fish.x);
+          fish.vx += (Math.cos(angle) * 2.1 - fish.vx) * 0.065 * dt;
+          fish.vy += (Math.sin(angle) * 2.1 - fish.vy) * 0.065 * dt;
+          fish.swimPhase += 0.25 * dt;
+
+          if (bestDist < 26) {
+            const pIdx = pellets.indexOf(targetPellet);
+            if (pIdx > -1) pellets.splice(pIdx, 1);
+            audioFX.playBubblePop(540, 0.07);
+            ripples.push({ x: fish.x, y: fish.y, r: 4, alpha: 0.7 });
+
+            if (fish.growth < 100) {
+              const oldGrowth = fish.growth;
+              fish.growth = Math.min(100, fish.growth + 25);
+              if (oldGrowth < 40 && fish.growth >= 40) {
+                showToast(`🌱 ${info.name} tumbuh menjadi Juvenile!`);
+              } else if (oldGrowth < 100 && fish.growth >= 100) {
+                showToast(`🎉 ${info.name} sudah DEWASA & siap kawin!`);
+                populateBreedingSelects();
+              }
+            } else {
+              state.coins += 8;
+            }
+            if (inspectedFishUid === fish.uid) refreshInspectorCard(fish);
+            refreshHUD();
+            saveState();
+          }
+        } else {
+          fish.turnTimer -= dt;
+          if (fish.turnTimer <= 0) {
+            fish.turnTimer = 140 + Math.random() * 240;
+            const cruiseSpeed = 0.55 + Math.random() * 0.65;
+            fish.vx = (Math.random() > 0.5 ? 1 : -1) * cruiseSpeed;
+            fish.vy = (Math.random() - 0.5) * 0.35;
+          }
+          fish.swimPhase += 0.13 * dt;
+        }
+
+        fish.x += fish.vx * dt;
+        fish.y += fish.vy * dt;
+
+        if (fish.x < padX) { fish.x = padX; fish.vx = Math.abs(fish.vx); }
+        if (fish.x > W - padX) { fish.x = W - padX; fish.vx = -Math.abs(fish.vx); }
+        if (fish.y < padTop) { fish.y = padTop; fish.vy = Math.abs(fish.vy) * 0.4; }
+        if (fish.y > padBot) { fish.y = padBot; fish.vy = -Math.abs(fish.vy) * 0.4; }
+
+        if (Math.abs(fish.vx) > 0.06) fish.facing = fish.vx >= 0 ? 1 : -1;
+
+        const scale = 0.48 + (fish.growth / 100) * 0.57;
+
+        ctx.save();
+        ctx.translate(fish.x, fish.y);
+        renderFishHD(ctx, fish.catalogId, scale, fish.swimPhase, fish.facing, fish.uid === inspectedFishUid);
+
+        if (fish.growth < 100) {
+          ctx.fillStyle = fish.growth < 40 ? 'rgba(125, 211, 252, 0.9)' : 'rgba(52, 211, 153, 0.9)';
+          ctx.font = '700 9px Plus Jakarta Sans';
+          ctx.textAlign = 'center';
+          ctx.fillText(fish.growth < 40 ? 'FRY' : 'JUVENILE', 0, -26 * scale);
+        }
+        ctx.restore();
+      });
+    }
+
+    // 8. TANK TAP INTERACTIONS
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const tx = e.clientX - rect.left;
+      const ty = e.clientY - rect.top;
+
+      let hitFish = null;
+      for (let i = state.fish.length - 1; i >= 0; i--) {
+        const f = state.fish[i];
+        if (Math.hypot(f.x - tx, f.y - ty) < 46) { hitFish = f; break; }
+      }
+
+      if (hitFish) {
+        openInspector(hitFish);
+        audioFX.playBubblePop(480, 0.06);
+      } else {
+        closeInspector();
+        spawnPellet(tx, ty);
+        ripples.push({ x: tx, y: ty, r: 5, alpha: 0.75 });
+        audioFX.playBubblePop(310, 0.05);
+      }
+    });
+
+    function spawnPellet(x, y) {
+      if (pellets.length > 30) pellets.shift();
+      pellets.push({ x, y: Math.max(68, y), vy: 0.75 + Math.random() * 0.35 });
+    }
+
+    function dropPelletBurst() {
+      const cx = W * (0.25 + Math.random() * 0.5);
+      for (let i = 0; i < 6; i++) spawnPellet(cx + (Math.random() - 0.5) * 110, 80 + Math.random() * 25);
+      ripples.push({ x: cx, y: 90, r: 8, alpha: 0.8 });
+      audioFX.playBubblePop(340, 0.07);
+      showToast('🍤 Pelet ditaburkan ke akuarium!');
+    }
+
+    // 9. FISH INSPECTOR
+    function openInspector(fish) {
+      inspectedFishUid = fish.uid;
+      document.getElementById('fishInspector').classList.remove('hidden');
+      refreshInspectorCard(fish);
+    }
+
+    function refreshInspectorCard(fish) {
+      const info = SPECIES_DB[fish.catalogId];
+      document.getElementById('inspName').textContent = info.name;
+
+      const rarBadge = document.getElementById('inspRarity');
+      rarBadge.textContent = info.rarity;
+      rarBadge.className = `text-[9px] font-extrabold px-1.5 py-0.5 rounded-full badge-${info.rarity.toLowerCase()}`;
+
+      const gEl = document.getElementById('inspGender');
+      gEl.textContent = fish.gender === 'M' ? '♂ Jantan' : '♀ Betina';
+      gEl.className = fish.gender === 'M' ? 'font-bold text-cyan-300' : 'font-bold text-pink-300';
+
+      document.getElementById('inspStageText').textContent = getLifeStageLabel(fish.growth);
+      document.getElementById('inspGrowthPct').textContent = `${fish.growth}%`;
+      document.getElementById('inspGrowthFill').style.width = `${fish.growth}%`;
+
+      const sellVal = fish.growth >= 100 ? info.sellPrice : Math.floor(info.sellPrice * 0.45);
+      document.getElementById('inspSellBtn').textContent = `Jual +${sellVal} 🪙`;
+
+      const assignBtn = document.getElementById('inspAssignBreedBtn');
+      assignBtn.disabled = fish.growth < 100;
+      assignBtn.classList.toggle('opacity-40', fish.growth < 100);
+
+      const pCan = document.getElementById('inspectorPreviewCanvas');
+      const pCtx = pCan.getContext('2d');
+      pCtx.clearRect(0, 0, pCan.width, pCan.height);
+      pCtx.save();
+      pCtx.translate(pCan.width / 2, pCan.height / 2);
+      renderFishHD(pCtx, fish.catalogId, 0.65, 0.4, 1, false);
+      pCtx.restore();
+    }
+
+    function closeInspector() {
+      inspectedFishUid = null;
+      document.getElementById('fishInspector').classList.add('hidden');
+    }
+
+    function assignInspectedToBreed() {
+      const fish = state.fish.find(f => f.uid === inspectedFishUid);
+      if (!fish || fish.growth < 100) return;
+      if (!dockExpanded) toggleBreedingDock();
+      if (fish.gender === 'M') document.getElementById('maleSelect').value = fish.uid;
+      else document.getElementById('femaleSelect').value = fish.uid;
+      onParentChange();
+      closeInspector();
+      showToast(`🧬 ${SPECIES_DB[fish.catalogId].name} dipilih sebagai indukan!`);
+    }
+
+    function sellInspectedFish() {
+      if (!inspectedFishUid) return;
+      if (state.fish.length <= 1) {
+        showToast('⚠️ Sisakan minimal 1 ikan di akuarium!', 'warn');
+        return;
+      }
+      const idx = state.fish.findIndex(f => f.uid === inspectedFishUid);
+      if (idx === -1) return;
+      const fish = state.fish[idx];
+      const info = SPECIES_DB[fish.catalogId];
+      const val = fish.growth >= 100 ? info.sellPrice : Math.floor(info.sellPrice * 0.45);
+      state.coins += val;
+      state.fish.splice(idx, 1);
+      closeInspector();
+      populateBreedingSelects();
+      refreshHUD();
+      saveState();
+      audioFX.playChime(false);
+      showToast(`🪙 ${info.name} terjual +${val} Koin!`);
+    }
+
+    // 10. BREEDING LAB & HATCH SYSTEM
+    function toggleBreedingDock() {
+      dockExpanded = !dockExpanded;
+      document.getElementById('breedingDockBody').classList.toggle('hidden', !dockExpanded);
+      document.getElementById('toggleDockBtn').textContent = dockExpanded ? '▼ Tutup' : '▲ Buka';
+      if (dockExpanded) populateBreedingSelects();
+    }
+
+    function populateBreedingSelects() {
+      const mSel = document.getElementById('maleSelect');
+      const fSel = document.getElementById('femaleSelect');
+      const prevM = mSel.value;
+      const prevF = fSel.value;
+
+      mSel.innerHTML = '<option value="">-- Pilih Jantan --</option>';
+      fSel.innerHTML = '<option value="">-- Pilih Betina --</option>';
+
+      state.fish.forEach(f => {
+        if (f.growth < 100) return;
+        const info = SPECIES_DB[f.catalogId];
+        const opt = document.createElement('option');
+        opt.value = f.uid;
+        opt.textContent = `${info.name} (${info.rarity})`;
+        if (f.gender === 'M') mSel.appendChild(opt);
+        else fSel.appendChild(opt);
+      });
+
+      if (prevM) mSel.value = prevM;
+      if (prevF) fSel.value = prevF;
+      onParentChange();
+    }
+
+    function calculateGenetics(maleFish, femaleFish) {
+      const mInfo = SPECIES_DB[maleFish.catalogId];
+      const fInfo = SPECIES_DB[femaleFish.catalogId];
+      const sameSpecies = mInfo.species === fInfo.species;
+
+      const tierPoints =
+        (mInfo.rarity === 'Epic' ? 2 : mInfo.rarity === 'Rare' ? 1 : 0) +
+        (fInfo.rarity === 'Epic' ? 2 : fInfo.rarity === 'Rare' ? 1 : 0);
+
+      let outcomes = [];
+      if (sameSpecies) {
+        const sp = mInfo.species;
+        const epicPct = Math.min(36, 12 + tierPoints * 6);
+        const rarePct = Math.min(48, 30 + tierPoints * 4);
+        const commonPct = 100 - epicPct - rarePct;
+        outcomes = [
+          { id: `${sp}_common`, rarity: 'Common', chance: commonPct },
+          { id: `${sp}_rare`, rarity: 'Rare', chance: rarePct },
+          { id: `${sp}_epic`, rarity: 'Epic', chance: epicPct }
+        ];
+      } else {
+        const sp1 = mInfo.species;
+        const sp2 = fInfo.species;
+        const epicEach = 6 + tierPoints * 2;
+        const rareEach = 15 + tierPoints;
+        const commonEach = Math.floor((100 - (epicEach * 2 + rareEach * 2)) / 2);
+        const rem = 100 - (commonEach * 2 + rareEach * 2 + epicEach * 2);
+        outcomes = [
+          { id: `${sp1}_common`, rarity: 'Common', chance: commonEach + rem },
+          { id: `${sp2}_common`, rarity: 'Common', chance: commonEach },
+          { id: `${sp1}_rare`, rarity: 'Rare', chance: rareEach },
+          { id: `${sp2}_rare`, rarity: 'Rare', chance: rareEach },
+          { id: `${sp1}_epic`, rarity: 'Epic', chance: epicEach },
+          { id: `${sp2}_epic`, rarity: 'Epic', chance: epicEach }
+        ];
+      }
+      return { sameSpecies, outcomes };
+    }
+
+    function onParentChange() {
+      const mUid = document.getElementById('maleSelect').value;
+      const fUid = document.getElementById('femaleSelect').value;
+      const mFish = state.fish.find(f => f.uid === mUid);
+      const fFish = state.fish.find(f => f.uid === fUid);
+
+      document.getElementById('maleSlotInfo').textContent = mFish ? SPECIES_DB[mFish.catalogId].speciesName : 'Pilih indukan jantan';
+      document.getElementById('femaleSlotInfo').textContent = fFish ? SPECIES_DB[fFish.catalogId].speciesName : 'Pilih indukan betina';
+
+      const breakdownEl = document.getElementById('hatchRatesBreakdown');
+      const matchTag = document.getElementById('breedMatchTag');
+      const startBtn = document.getElementById('startBreedBtn');
+
+      if (!mFish || !fFish) {
+        matchTag.textContent = 'Menunggu Induk';
+        matchTag.className = 'text-[9px] font-bold text-slate-400';
+        breakdownEl.innerHTML = `
+          <div class="flex justify-between text-slate-400"><span>Common</span><span class="font-mono">--%</span></div>
+          <div class="flex justify-between text-sky-400"><span>Rare</span><span class="font-mono">--%</span></div>
+          <div class="flex justify-between text-amber-300"><span>Epic Mutasi</span><span class="font-mono">--%</span></div>
+        `;
+        startBtn.disabled = true;
+        return;
+      }
+
+      const { sameSpecies, outcomes } = calculateGenetics(mFish, fFish);
+      matchTag.textContent = sameSpecies ? '✨ Purebred (+Mutasi)' : '🔀 Cross-Hybrid';
+      matchTag.className = sameSpecies ? 'text-[9px] font-bold text-emerald-400' : 'text-[9px] font-bold text-amber-300';
+
+      const sumByRarity = { Common: 0, Rare: 0, Epic: 0 };
+      outcomes.forEach(o => sumByRarity[o.rarity] += o.chance);
+
+      breakdownEl.innerHTML = `
+        <div class="flex justify-between text-slate-300"><span>Common</span><span class="font-mono font-bold">${sumByRarity.Common}%</span></div>
+        <div class="flex justify-between text-sky-400"><span>Rare</span><span class="font-mono font-bold">${sumByRarity.Rare}%</span></div>
+        <div class="flex justify-between text-amber-300"><span>Epic Mutasi</span><span class="font-mono font-bold">${sumByRarity.Epic}%</span></div>
+      `;
+      startBtn.disabled = false;
+    }
+
+    function startBreedingCycle() {
+      const COST = 50;
+      if (state.coins < COST) { showToast('⚠️ Koin tidak cukup! Butuh 50 🪙.', 'warn'); return; }
+      if (state.fish.length >= state.maxCapacity) { showToast('⚠️ Tangki penuh!', 'warn'); return; }
+
+      const mFish = state.fish.find(f => f.uid === document.getElementById('maleSelect').value);
+      const fFish = state.fish.find(f => f.uid === document.getElementById('femaleSelect').value);
+      if (!mFish || !fFish) return;
+
+      state.coins -= COST;
+      const { outcomes } = calculateGenetics(mFish, fFish);
+
+      const roll = Math.random() * 100;
+      let acc = 0;
+      let chosenId = outcomes[0].id;
+      for (const o of outcomes) {
+        acc += o.chance;
+        if (roll <= acc) { chosenId = o.id; break; }
+      }
+
+      const baby = spawnFishObject(chosenId, null, 15);
+      baby.x = (mFish.x + fFish.x) / 2;
+      baby.y = (mFish.y + fFish.y) / 2;
+      state.fish.push(baby);
+
+      for (let i = 0; i < 12; i++) {
+        bubbles.push({
+          x: baby.x + (Math.random() - 0.5) * 40,
+          y: baby.y + (Math.random() - 0.5) * 30,
+          r: 2 + Math.random() * 4,
+          vy: 1.2 + Math.random() * 1.4,
+          wobble: Math.random() * Math.PI * 2
+        });
+      }
+      ripples.push({ x: baby.x, y: baby.y, r: 10, alpha: 0.95 });
+
+      const isNewMutation = !state.discovered.includes(chosenId);
+      if (isNewMutation) state.discovered.push(chosenId);
+
+      refreshHUD();
+      saveState();
+
+      const hatchedInfo = SPECIES_DB[chosenId];
+      audioFX.playChime(hatchedInfo.rarity === 'Epic' || isNewMutation);
+      openHatchPopup(chosenId, isNewMutation);
+    }
+
+    function openHatchPopup(catalogId, isNew) {
+      const info = SPECIES_DB[catalogId];
+      const badge = document.getElementById('hatchPopupBadge');
+      if (isNew) {
+        badge.textContent = `✨ MUTASI BARU (${info.rarity.toUpperCase()})!`;
+        badge.className = 'inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider badge-epic mb-2';
+      } else {
+        badge.textContent = `🥚 TELUR MENETAS (${info.rarity.toUpperCase()})`;
+        badge.className = `inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider badge-${info.rarity.toLowerCase()} mb-2`;
+      }
+
+      document.getElementById('hatchPopupTitle').textContent = info.name;
+      document.getElementById('hatchPopupSubtitle').textContent = info.desc;
+
+      const hCan = document.getElementById('hatchPreviewCanvas');
+      const hCtx = hCan.getContext('2d');
+      hCtx.clearRect(0, 0, hCan.width, hCan.height);
+      hCtx.save();
+      hCtx.translate(hCan.width / 2, hCan.height / 2);
+      renderFishHD(hCtx, catalogId, 1.35, 0.35, 1, false);
+      hCtx.restore();
+
+      document.getElementById('hatchPopup').classList.remove('hidden');
+    }
+
+    function closeHatchPopup() {
+      document.getElementById('hatchPopup').classList.add('hidden');
+    }
+
+    // 11. MODALS (STUDIO ASET HD, SHOP, DEX)
+    function openModal(type) {
+      closeInspector();
+      document.getElementById('modalBackdrop').classList.remove('hidden');
+      document.getElementById('studioModal').classList.toggle('hidden', type !== 'studio');
+      document.getElementById('shopModal').classList.toggle('hidden', type !== 'shop');
+      document.getElementById('dexModal').classList.toggle('hidden', type !== 'dex');
+
+      if (type === 'studio') renderStudioModal();
+      if (type === 'shop') renderShopModal();
+      if (type === 'dex') renderDexModal();
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+    }
+
+    function renderStudioModal() {
+      const grid = document.getElementById('assetSlotsGrid');
+      grid.innerHTML = ASSET_SLOTS.map(slot => {
+        const isLoaded = Boolean(hdAssets[slot.key]);
+        return `
+          <div class="glass-subcard rounded-2xl p-3 flex items-center justify-between gap-2.5">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${isLoaded ? 'bg-emerald-400' : 'bg-slate-600'}"></span>
+                <span class="text-xs font-extrabold text-white truncate">${slot.label}</span>
+              </div>
+              <div class="text-[10px] font-mono text-slate-400 truncate mt-0.5">${slot.path}</div>
+              <div class="text-[10px] font-bold mt-1 ${isLoaded ? 'text-emerald-400' : 'text-slate-500'}">
+                ${isLoaded ? '✓ Gambar HD Aktif' : 'Mode Fallback Aktif'}
+              </div>
+            </div>
+            <label class="shrink-0 cursor-pointer px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[11px] font-bold transition">
+              📁 Pilih File
+              <input type="file" accept="image/*" class="hidden" onchange="handleUserAssetUpload('${slot.key}', this.files[0])">
+            </label>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderShopModal() {
+      document.getElementById('shopCoinsText').textContent = `${state.coins} 🪙`;
+      const list = document.getElementById('shopCatalogList');
+      const starters = Object.values(SPECIES_DB).filter(s => s.buyPrice > 0);
+
+      list.innerHTML = starters.map(s => `
+        <div class="glass-subcard rounded-2xl p-3 flex items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs sm:text-sm font-extrabold text-white">${s.name}</span>
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded-full badge-common">${s.rarity}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">${s.desc}</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-1.5 shrink-0">
+            <button onclick="purchaseFish('${s.id}', 'M')" class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition">
+              ♂ ${s.buyPrice} 🪙
+            </button>
+            <button onclick="purchaseFish('${s.id}', 'F')" class="px-3 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 text-pink-300 text-xs font-bold transition">
+              ♀ ${s.buyPrice} 🪙
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function purchaseFish(catalogId, gender) {
+      const info = SPECIES_DB[catalogId];
+      if (state.coins < info.buyPrice) { showToast('⚠️ Koin tidak cukup!', 'warn'); return; }
+      if (state.fish.length >= state.maxCapacity) { showToast('⚠️ Akuarium sudah penuh!', 'warn'); return; }
+
+      state.coins -= info.buyPrice;
+      const newAdult = spawnFishObject(catalogId, gender, 100);
+      state.fish.push(newAdult);
+      if (!state.discovered.includes(catalogId)) state.discovered.push(catalogId);
+
+      refreshHUD();
+      renderShopModal();
+      populateBreedingSelects();
+      saveState();
+      audioFX.playBubblePop(460, 0.08);
+      showToast(`✅ Membeli ${info.name} (${gender === 'M' ? '♂ Jantan' : '♀ Betina'})!`);
+    }
+
+    function upgradeCapacity() {
+      const COST = 300;
+      if (state.coins < COST) { showToast('⚠️ Butuh 300 🪙 untuk menambah kapasitas!', 'warn'); return; }
+      state.coins -= COST;
+      state.maxCapacity += 4;
+      refreshHUD();
+      renderShopModal();
+      saveState();
+      audioFX.playChime(false);
+      showToast(`🌊 Kapasitas akuarium meningkat menjadi ${state.maxCapacity} ikan!`);
+    }
+
+    function renderDexModal() {
+      const grid = document.getElementById('dexCatalogGrid');
+      const headers = {
+        oranda: '🐠 Oranda Goldfish',
+        betta: '🔥 Betta Halfmoon',
+        guppy: '🌈 Guppy',
+        manfish: '📐 Manfish / Angelfish',
+        arowana: '🐉 Arowana'
+      };
+
+      grid.innerHTML = SPECIES_ORDER.map(sp => {
+        const variants = Object.values(SPECIES_DB).filter(v => v.species === sp);
+        const cards = variants.map(v => {
+          const unlocked = state.discovered.includes(v.id);
+          return `
+            <div class="glass-subcard rounded-2xl p-3 flex flex-col justify-between ${unlocked ? '' : 'opacity-45'}">
+              <div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[9px] font-extrabold px-2 py-0.5 rounded-full badge-${v.rarity.toLowerCase()}">${v.rarity}</span>
+                  <span class="text-[11px] font-bold text-amber-300">${unlocked ? v.sellPrice + ' 🪙' : '???'}</span>
+                </div>
+                <h4 class="text-xs font-extrabold text-white mt-2">${unlocked ? v.name : 'Mutasi Terkunci'}</h4>
+                <p class="text-[11px] text-slate-400 mt-1 leading-snug">${unlocked ? v.desc : 'Kawinkan indukan di Breeding Lab untuk menemukan varian ini.'}</p>
+              </div>
+              <div class="mt-2.5 pt-2 border-t border-white/5 text-[10px] font-bold ${unlocked ? 'text-emerald-400' : 'text-slate-500'}">
+                ${unlocked ? '✓ Ditemukan' : '🔒 Terkunci'}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-cyan-300 mb-2">${headers[sp]}</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">${cards}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 12. HUD & TOAST HELPERS
+    function refreshHUD() {
+      document.getElementById('hudCoins').textContent = state.coins;
+      document.getElementById('hudCapacity').textContent = `${state.fish.length}/${state.maxCapacity}`;
+      document.getElementById('hudDexCount').textContent = `${state.discovered.length}/${Object.keys(SPECIES_DB).length}`;
+    }
+
+    function showToast(message, type = 'info') {
+      const stack = document.getElementById('toastStack');
+      const toast = document.createElement('div');
+      const accent = type === 'warn' ? 'border-amber-400/50 text-amber-200' : 'border-cyan-400/40 text-slate-100';
+      toast.className = `glass-hud ${accent} px-4 py-2 rounded-2xl text-xs font-semibold shadow-2xl animate-pop text-center`;
+      toast.textContent = message;
+      stack.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2400);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
