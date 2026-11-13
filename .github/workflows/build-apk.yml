@@ -97,16 +97,16 @@ jobs:
             -Pandroid.injected.signing.key.alias=wadirect \
             -Pandroid.injected.signing.key.password=wadirect123
 
-      - name: Rename APK
+            - name: Rename APK
         run: |
-          mv android/app/build/outputs/apk/release/app-release.apk AquaBreed-HD.apk
+          mv android/app/build/outputs/apk/release/app-release.apk Aquatopia.apk
 
       - name: Publish ke GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: AquaBreed HD v1.0.${{ github.run_number }}
+          name: Aquatopia v1.0.${{ github.run_number }}
           body: |
-            Rilis resmi game **AquaBreed HD** (Build #${{ github.run_number }}).
+            Rilis resmi game **Aquatopia** (Build #${{ github.run_number }}).
             Simulasi Aquascape & Breeding Ikan Hias 3D Realistis.
-          files: AquaBreed-HD.apk
+          files: Aquatopia.apk
