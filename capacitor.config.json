@@ -1,0 +1,9 @@
+{
+  "appId": "id.my.ipps.aquabreed",
+  "appName": "AquaBreed HD",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "backgroundColor": "#06090e"
+  }
+}
