@@ -34,6 +34,8 @@ jobs:
           import os, json, hashlib
 
           assets_dir = "www/assets"
+          os.makedirs(assets_dir, exist_ok=True)  # Pastikan folder otomatis dibuat
+
           ignored = {"bg-aquascape.jpg", "icon.png", "icon-only.png", "fishes-auto.js"}
 
           preset = {
@@ -81,7 +83,7 @@ jobs:
                       ]
                   }
 
-          with open("www/assets/fishes-auto.js", "w") as f:
+          with open(os.path.join(assets_dir, "fishes-auto.js"), "w") as f:
               f.write("window.AUTO_ASSET_PATHS = " + json.dumps(paths_out) + ";\n")
               f.write("window.AUTO_SPECIES = " + json.dumps(species_out) + ";\n")
           print("Auto-scan aset sukses!")
