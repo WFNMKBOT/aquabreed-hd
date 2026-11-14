@@ -869,7 +869,7 @@ function loop(now) {
         f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
-          f.eatCooldown = 5;
+          f.eatCooldown = 600;
           if (f.growth < 100) {
             f.growth = Math.min(100, Math.round(f.growth + (nearest.boost || 1)));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
