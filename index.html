@@ -290,7 +290,7 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// High-Definition Solid Fish Sprite Extractor (720px, strict black threshold < 16, solid alpha = 255)
+// High-Definition Solid Fish Sprite Extractor
 const processedSprites = {};
 let bgImage = null;
 
@@ -349,7 +349,6 @@ function extractSolidFishSprite(img) {
     }
   }
 
-  // Force remaining body & fin pixels 100% solid (non-transparent)
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] > 0) {
       data[i + 3] = 255;
@@ -486,18 +485,26 @@ function loadGame() {
     if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
       state.fishes = saved.fishes.map(f => ({
         ...f,
+        growth: Math.round(f.growth ?? 0),
         x: Math.min(Math.max(60, f.x || W * 0.5), W - 60),
         y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
         vx: f.vx || SPECIES[f.species]?.speed || 0.5,
         vy: f.vy || 0,
         phase: f.phase || Math.random() * 6,
         dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12),
-        eatCooldown: 0
+        eatCooldown: typeof f.eatCooldown === 'number' ? f.eatCooldown : 0
       }));
     }
 
     if (saved.lastSaved) {
-      const elapsedMins = Math.floor((Date.now() - saved.lastSaved) / 60000);
+      const elapsedSecs = Math.max(0, Math.floor((Date.now() - saved.lastSaved) / 1000));
+      state.fishes.forEach(f => {
+        if (f.eatCooldown > 0) {
+          f.eatCooldown = Math.max(0, f.eatCooldown - elapsedSecs);
+        }
+      });
+
+      const elapsedMins = Math.floor(elapsedSecs / 60);
       if (elapsedMins >= 2) {
         const cappedMins = Math.min(elapsedMins, 480);
         const earned = Math.floor(cappedMins / 2) * state.fishes.length;
@@ -566,9 +573,9 @@ function spawnFloatingText(x, y, text, color = '#fbbf24') {
 
 // Adult Coin Drop Value: Common +5, Rare +10, Epic +18
 function getFishDropValue(tier) {
-  if (tier === 2) return 18; // Epic
-  if (tier === 1) return 10; // Rare
-  return 5;                  // Common
+  if (tier === 2) return 18;
+  if (tier === 1) return 10;
+  return 5;
 }
 
 // Switch Active Feed Type
@@ -586,13 +593,12 @@ function getTotalAllFeeds() {
   return (state.pellets.regular || 0) + (state.pellets.worm || 0) + (state.pellets.shrimp || 0);
 }
 
-// Tank Tap Interaction (Inspect Fish or Drop 1 Active Feed from Bag)
+// Tank Tap Interaction
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
   const ty = e.clientY - rect.top;
 
-  // 1. Inspect tapped fish
   for (let i = state.fishes.length - 1; i >= 0; i--) {
     const f = state.fishes[i];
     const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
@@ -602,7 +608,6 @@ canvas.addEventListener('pointerdown', (e) => {
     }
   }
 
-  // 2. Drop 1 active feed from inventory
   const fType = state.activeFeed;
   const fInfo = FEED_TYPES[fType];
   const curStock = state.pellets[fType] || 0;
@@ -621,7 +626,7 @@ canvas.addEventListener('pointerdown', (e) => {
     spawnFloatingText(tx, ty - 8, `-1 ${fInfo.name}`, fInfo.color);
     playTone(520, 0.08);
   } else if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
-    pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 2, cooldownCut: 2, color: '#f59e0b' });
+    pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
     showToast('Stok habis! Menggunakan remah pakan darurat.');
   } else {
     showToast(`Stok ${fInfo.name} habis! Tap ikon pakan di atas atau beli di Toko.`);
@@ -637,7 +642,7 @@ function dropFoodCluster() {
   if (curStock <= 0) {
     if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
       for (let i = 0; i < 2; i++) {
-        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 2, cooldownCut: 2, color: '#f59e0b' });
+        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
       }
       showToast('Remah pakan darurat ditebar!');
       return;
@@ -725,7 +730,7 @@ function drawFish(f, time) {
   }
 }
 
-// Draw 3D Metallic Gold Coin (Matching HUD Coin)
+// Draw 3D Metallic Gold Coin
 function drawGoldCoin(x, y, t) {
   const spinScale = 0.75 + Math.abs(Math.cos(t * 4)) * 0.25;
   const r = 11;
@@ -799,7 +804,7 @@ function loop(now) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  // Render Sinking Feed Items (Pellet / Worm / Shrimp)
+  // Render Sinking Feed Items
   for (let i = pellets.length - 1; i >= 0; i--) {
     const p = pellets[i];
     p.y += p.vy;
@@ -830,7 +835,7 @@ function loop(now) {
   // Fishes & Periodic Coin Drops from Adult Fish
   state.fishes.forEach(f => {
     const sp = SPECIES[f.species];
-    if (f.eatCooldown > 0) f.eatCooldown -= dt;
+    if (f.eatCooldown > 0) f.eatCooldown = Math.max(0, f.eatCooldown - dt);
 
     if (f.growth >= 100) {
       f.dropTimer = (f.dropTimer ?? 18) - dt;
@@ -859,13 +864,13 @@ function loop(now) {
         f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
-          f.eatCooldown = 600;
+          f.eatCooldown = 600; // 10 menit (600 detik) jeda makan
           if (f.growth < 100) {
             f.growth = Math.min(100, Math.round(f.growth + (nearest.boost || 1)));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
             saveGame();
           } else {
-            f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 2));
+            f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 1));
             spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
           }
           playTone(760, 0.09);
@@ -1048,7 +1053,6 @@ function startBreeding() {
 }
 
 function populateShop() {
-  // 1. Feed Packs (Regular Pellet: Green, Bloodworm: Red, Crystal Shrimp: Purple)
   const pelletList = document.getElementById('pelletShopList');
   pelletList.innerHTML = PELLET_PACKS.map(p => {
     const fInfo = FEED_TYPES[p.feedType];
@@ -1063,7 +1067,6 @@ function populateShop() {
     `;
   }).join('');
 
-  // 2. Fish Seeds
   const list = document.getElementById('shopList');
   list.innerHTML = Object.keys(SPECIES).map(k => {
     const sp = SPECIES[k];
@@ -1118,6 +1121,8 @@ function inspectFish(f) {
   const sp = SPECIES[f.species];
   const t = sp.tiers[f.tier];
   const dropVal = getFishDropValue(f.tier);
+  const cdMin = Math.ceil((f.eatCooldown || 0) / 60);
+  const statusMakan = (f.eatCooldown || 0) > 0 ? `Kenyang (${cdMin} mnt lagi)` : 'Lapar (Siap Makan)';
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong style="font-size:15px;">${t.name}</strong>
@@ -1126,7 +1131,8 @@ function inspectFish(f) {
     <div style="font-size:12px; color:#cbd5e1; line-height:1.7; margin-bottom:12px;">
       <div>Kelamin: <b>${f.gender === 'M' ? '&#9794; Jantan' : '&#9792; Betina'}</b></div>
       <div>Rarity: <b style="color:#f59e0b;">${t.rarity}</b></div>
-      <div>Pertumbuhan: <b>${f.growth}% ${f.growth >= 100 ? '(Siap Kawin & Drop +' + dropVal + ' Koin)' : '(Anakan)'}</b></div>
+      <div>Pertumbuhan: <b>${Math.round(f.growth)}% ${f.growth >= 100 ? '(Siap Kawin & Drop +' + dropVal + ' Koin)' : '(Anakan)'}</b></div>
+      <div>Status: <b style="color:${(f.eatCooldown || 0) > 0 ? '#38bdf8' : '#34d399'};">${statusMakan}</b></div>
     </div>
     <button class="btn-primary" style="background:#ef4444;" onclick="sellFish(${f.id})">&#128176; Jual Ikan (+${t.sell} Koin)</button>
   `;
@@ -1153,7 +1159,7 @@ function openDex() {
   let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
     <strong>&#128214; Katalog Mutasi (${state.unlocked.length}/${totalVariants})</strong>
     <button class="close-btn" onclick="closeModal()">&#10005;</button>
-  </div><div style="max-height:50vh; overflow-y:auto; font-size:12px; margin-bottom:10px;">`;
+  </div><div style="max-height:55vh; overflow-y:auto; font-size:12px;">`;
   Object.values(SPECIES).forEach(sp => {
     sp.tiers.forEach(t => {
       const ok = state.unlocked.includes(t.id);
@@ -1163,7 +1169,10 @@ function openDex() {
       </div>`;
     });
   });
-  html += `</div>
+  html += `</div>`;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('show');
+}
 
 function closeModal() { document.getElementById('infoModal').classList.remove('show'); }
 
