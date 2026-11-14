@@ -226,9 +226,12 @@ const DEFAULT_ASSET_PATHS = {
   koi: 'assets/koi.jpg'
 };
 
+// Daftar gambar ikan yang aslinya menghadap ke KIRI (otomatis dibalik ke KANAN saat load)
+const LEFT_FACING_KEYS = new Set(['neon', 'discus', 'koi']);
+
 const DEFAULT_SPECIES = {
   neon: {
-    name: 'Neon Tetra', baseSize: 34, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
+    name: 'Neon Tetra', baseSize: 36, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
     tiers: [
       { id: 'neon_1', name: 'Black Neon Tetra', rarity: 'Common', hue: 190, sat: 0.45, val: 0.9, sell: 35 },
       { id: 'neon_2', name: 'Cardinal Tetra', rarity: 'Rare', hue: -18, sat: 1.25, val: 1.05, sell: 110 },
@@ -293,7 +296,6 @@ const DEFAULT_SPECIES = {
   }
 };
 
-// Gabungkan data otomatis dari GitHub Actions (jika ada) dengan default
 const ASSET_PATHS = Object.assign({}, DEFAULT_ASSET_PATHS, window.AUTO_ASSET_PATHS || {});
 const SPECIES = Object.assign({}, DEFAULT_SPECIES, window.AUTO_SPECIES || {});
 
@@ -326,12 +328,15 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// High-Definition Solid Fish Sprite Extractor (Vignette-Safe + 100% Solid Fish Body)
+// High-Definition Solid Fish Sprite Extractor
+// - Bersih dari vignette gelap & noise JPG di sekitar sirip
+// - 100% solid (alpha 255) di dalam tubuh ikan, belang hitam tetap utuh
+// - Otomatis menghadap ke KANAN agar tidak pernah jalan mundur
 const processedSprites = {};
 let bgImage = null;
 
-function extractSolidFishSprite(img) {
-  const maxDim = 720;
+function extractSolidFishSprite(img, speciesKey) {
+  const maxDim = 640;
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
   const w = Math.round(img.width * scale);
   const h = Math.round(img.height * scale);
@@ -345,24 +350,38 @@ function extractSolidFishSprite(img) {
 
   const imgData = octx.getImageData(0, 0, w, h);
   const data = imgData.data;
+
+  // 1. Hapus area watermark kecil di pojok kanan bawah (5% lebar x 5% tinggi) jika ada
+  const wmStartX = Math.floor(w * 0.90);
+  const wmStartY = Math.floor(h * 0.92);
+  for (let y = wmStartY; y < h; y++) {
+    for (let x = wmStartX; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      data[idx] = 0; data[idx + 1] = 0; data[idx + 2] = 0;
+    }
+  }
+
   const visited = new Uint8Array(w * h);
   const queue = new Int32Array(w * h);
   let head = 0, tail = 0;
 
-  // Deteksi otomatis warna vignette di 4 sudut gambar
-  const cornerIdx = [0, (w - 1) * 4, ((h - 1) * w) * 4, ((h - 1) * w + (w - 1)) * 4];
-  let maxCorner = 8;
-  cornerIdx.forEach(ci => {
-    const lum = Math.max(data[ci], data[ci + 1], data[ci + 2]);
-    if (lum < 45 && lum > maxCorner) maxCorner = lum;
-  });
-  const bgLimit = Math.min(38, maxCorner + 10);
+  // Hitung kecerahan rata-rata tepi luar gambar untuk deteksi vignette
+  let borderMaxLum = 12;
+  for (let x = 0; x < w; x += 4) {
+    const i1 = x * 4, i2 = ((h - 1) * w + x) * 4;
+    const l1 = Math.max(data[i1], data[i1 + 1], data[i1 + 2]);
+    const l2 = Math.max(data[i2], data[i2 + 1], data[i2 + 2]);
+    if (l1 < 55 && l1 > borderMaxLum) borderMaxLum = l1;
+    if (l2 < 55 && l2 > borderMaxLum) borderMaxLum = l2;
+  }
+  const bgLimit = Math.min(48, borderMaxLum + 14);
 
   const isBgColor = (idx) => {
     const r = data[idx], g = data[idx + 1], b = data[idx + 2];
     const maxC = Math.max(r, g, b);
     const minC = Math.min(r, g, b);
-    return maxC <= bgLimit && (maxC - minC) <= 10;
+    // Hapus piksel latar gelap netral (vignette/hitam) tanpa menyentuh tubuh ikan
+    return maxC <= bgLimit && (maxC - minC) <= 14;
   };
 
   for (let x = 0; x < w; x++) {
@@ -376,35 +395,155 @@ function extractSolidFishSprite(img) {
     if (!visited[right] && isBgColor(right * 4)) { visited[right] = 1; queue[tail++] = right; }
   }
 
+  // 8-directional flood fill agar celah antar duri sirip bersih tuntas
+  const dx8 = [-1, 1, 0, 0, -1, 1, -1, 1];
+  const dy8 = [0, 0, -1, 1, -1, -1, 1, 1];
+
   while (head < tail) {
     const p = queue[head++];
     const px = p % w, py = (p / w) | 0;
     data[p * 4 + 3] = 0;
 
-    const neighbors = [
-      px > 0 ? p - 1 : -1,
-      px < w - 1 ? p + 1 : -1,
-      py > 0 ? p - w : -1,
-      py < h - 1 ? p + w : -1
-    ];
-    for (let i = 0; i < 4; i++) {
-      const np = neighbors[i];
-      if (np >= 0 && !visited[np] && isBgColor(np * 4)) {
-        visited[np] = 1;
-        queue[tail++] = np;
+    for (let d = 0; d < 8; d++) {
+      const nx = px + dx8[d], ny = py + dy8[d];
+      if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+        const np = ny * w + nx;
+        if (!visited[np] && isBgColor(np * 4)) {
+          visited[np] = 1;
+          queue[tail++] = np;
+        }
       }
     }
   }
 
-  // Kunci opacity 100% solid untuk seluruh tubuh & sirip ikan
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] > 0) {
-      data[i + 3] = 255;
+  // 2. Hapus pulau noise gelap kecil yang terpisah di luar tubuh utama ikan (connected components)
+  const compVisited = new Uint8Array(w * h);
+  let largestCompSize = 0;
+  let largestCompId = -1;
+  const compIds = new Int32Array(w * h).fill(-1);
+  const compSizes = [];
+  let currentComp = 0;
+
+  for (let i = 0; i < w * h; i++) {
+    if (data[i * 4 + 3] > 0 && !compVisited[i]) {
+      let cHead = 0, cTail = 0;
+      compVisited[i] = 1;
+      compIds[i] = currentComp;
+      queue[cTail++] = i;
+
+      while (cHead < cTail) {
+        const p = queue[cHead++];
+        const px = p % w, py = (p / w) | 0;
+        for (let d = 0; d < 8; d++) {
+          const nx = px + dx8[d], ny = py + dy8[d];
+          if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+            const np = ny * w + nx;
+            if (data[np * 4 + 3] > 0 && !compVisited[np]) {
+              compVisited[np] = 1;
+              compIds[np] = currentComp;
+              queue[cTail++] = np;
+            }
+          }
+        }
+      }
+      compSizes[currentComp] = cTail;
+      if (cTail > largestCompSize) {
+        largestCompSize = cTail;
+        largestCompId = currentComp;
+      }
+      currentComp++;
+    }
+  }
+
+  // Simpan hanya komponen ikan utama & kunci alpha = 255 (100% solid, nol transparan!)
+  let minX = w, maxX = 0, minY = h, maxY = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (compIds[i] === largestCompId) {
+      data[i * 4 + 3] = 255;
+      const px = i % w, py = (i / w) | 0;
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    } else {
+      data[i * 4 + 3] = 0;
     }
   }
 
   octx.putImageData(imgData, 0, 0);
-  return off;
+
+  // Crop rapat ke bounding box ikan agar proporsi ukuran akurat
+  const cw = Math.max(1, maxX - minX + 1);
+  const ch = Math.max(1, maxY - minY + 1);
+  const cropped = document.createElement('canvas');
+  cropped.width = cw; cropped.height = ch;
+  const cctx = cropped.getContext('2d');
+
+  // Auto-deteksi apakah ikan menghadap kiri (berdasarkan posisi pusat massa mata/kepala vs ekor + daftar)
+  let isLeftFacing = LEFT_FACING_KEYS.has(speciesKey);
+  if (!isLeftFacing && !['oranda', 'betta', 'guppy', 'manfish', 'arowana'].includes(speciesKey)) {
+    // Hitung ketebalan vertikal di 20% kiri vs 20% kanan: ekor bercabang biasanya memiliki tinggi rentang lebih besar/terpecah
+    let leftSpan = 0, rightSpan = 0;
+    const lx = minX + Math.floor(cw * 0.15);
+    const rx = maxX - Math.floor(cw * 0.15);
+    let lMin = h, lMax = 0, rMin = h, rMax = 0;
+    for (let y = minY; y <= maxY; y++) {
+      if (data[(y * w + lx) * 4 + 3] > 0) { if (y < lMin) lMin = y; if (y > lMax) lMax = y; }
+      if (data[(y * w + rx) * 4 + 3] > 0) { if (y < rMin) rMin = y; if (y > rMax) rMax = y; }
+    }
+    leftSpan = lMax - lMin;
+    rightSpan = rMax - rMin;
+    if (rightSpan > leftSpan * 1.15) isLeftFacing = true;
+  }
+
+  if (isLeftFacing) {
+    // Balik horizontal sehingga semua base sprite 100% menghadap ke KANAN
+    cctx.translate(cw, 0);
+    cctx.scale(-1, 1);
+  }
+  cctx.drawImage(off, minX, minY, cw, ch, 0, 0, cw, ch);
+
+  return cropped;
+}
+
+// Manipulasi warna HSL langsung per-piksel (bebas bug ctx.filter transparan di Android WebView)
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
 function getTintedSprite(speciesKey, tierIndex) {
@@ -414,13 +553,34 @@ function getTintedSprite(speciesKey, tierIndex) {
   if (!base) return null;
 
   const tier = SPECIES[speciesKey].tiers[tierIndex];
+  if (tier.hue === 0 && tier.sat === 1 && tier.val === 1) {
+    processedSprites[cacheKey] = base;
+    return base;
+  }
+
   const c = document.createElement('canvas');
   c.width = base.width; c.height = base.height;
   const cx = c.getContext('2d');
-  cx.imageSmoothingEnabled = true;
-  cx.imageSmoothingQuality = 'high';
-  cx.filter = `hue-rotate(${tier.hue}deg) saturate(${tier.sat}) brightness(${tier.val})`;
   cx.drawImage(base, 0, 0);
+
+  const imgData = cx.getImageData(0, 0, c.width, c.height);
+  const d = imgData.data;
+  const hueShift = ((tier.hue % 360) + 360) % 360 / 360;
+
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    let [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+    h = (h + hueShift) % 1;
+    s = Math.min(1, Math.max(0, s * tier.sat));
+    l = Math.min(1, Math.max(0, l * tier.val));
+    const [nr, ng, nb] = hslToRgb(h, s, l);
+    d[i] = nr;
+    d[i + 1] = ng;
+    d[i + 2] = nb;
+    d[i + 3] = 255; // Pastikan tetap 100% solid!
+  }
+
+  cx.putImageData(imgData, 0, 0);
   processedSprites[cacheKey] = c;
   return c;
 }
@@ -463,7 +623,7 @@ function loadAllAssets() {
     img.src = ASSET_PATHS[key];
     img.onload = () => {
       try {
-        processedSprites[`${key}_base`] = extractSolidFishSprite(img);
+        processedSprites[`${key}_base`] = extractSolidFishSprite(img, key);
       } catch (err) {
         processedSprites[`${key}_base`] = img;
       }
@@ -649,7 +809,7 @@ function getHungryFishCount() {
   return Math.max(0, hungry - pellets.length);
 }
 
-// Tank Tap Interaction (Hemat Pakan saat ikan sudah kenyang)
+// Tank Tap Interaction
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
@@ -738,7 +898,7 @@ function dropFoodCluster() {
   playTone(620, 0.1);
 }
 
-// Draw Solid HD Fish
+// Draw Solid HD Fish (Semua base sprite menghadap ke KANAN)
 function drawFish(f, time) {
   const sp = SPECIES[f.species];
   const scaleFactor = 0.42 + (f.growth / 100) * 0.58;
@@ -750,6 +910,8 @@ function drawFish(f, time) {
     const targetH = targetW * aspect;
 
     ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.translate(f.x, f.y);
