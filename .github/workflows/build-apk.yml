@@ -33,8 +33,8 @@ jobs:
           python3 - << 'EOF'
           import os, json, hashlib
 
-          assets_dir = "assets"
-          ignored = {"bg-aquascape.jpg", "icon.png", "icon-only.png"}
+          assets_dir = "www/assets"
+          ignored = {"bg-aquascape.jpg", "icon.png", "icon-only.png", "fishes-auto.js"}
 
           preset = {
               "neon":    {"name": "Neon Tetra",      "baseSize": 36,  "speed": 1.15, "price": 45,  "tiers": ["Black Neon Tetra", "Cardinal Tetra", "Diamond Blue Neon"]},
@@ -50,37 +50,38 @@ jobs:
           species_out = {}
           paths_out = {"bg": "assets/bg-aquascape.jpg"}
 
-          for fname in sorted(os.listdir(assets_dir)):
-              if fname in ignored or not fname.lower().endswith((".jpg", ".jpeg", ".png")):
-                  continue
-              key = os.path.splitext(fname)[0].lower().replace(" ", "_")
-              paths_out[key] = f"assets/{fname}"
+          if os.path.exists(assets_dir):
+              for fname in sorted(os.listdir(assets_dir)):
+                  if fname in ignored or not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                      continue
+                  key = os.path.splitext(fname)[0].lower().replace(" ", "_")
+                  paths_out[key] = f"assets/{fname}"
 
-              if key in preset:
-                  p = preset[key]
-                  disp_name, size, spd, price, tnames = p["name"], p["baseSize"], p["speed"], p["price"], p["tiers"]
-              else:
-                  h_hash = int(hashlib.md5(key.encode()).hexdigest()[:6], 16)
-                  disp_name = key.replace("_", " ").replace("-", " ").title()
-                  size = 55 + (h_hash % 35)
-                  spd = round(0.48 + ((h_hash >> 4) % 45) / 100, 2)
-                  price = 100 + ((h_hash >> 8) % 10) * 15
-                  tnames = [f"{disp_name} Classic", f"{disp_name} Golden", f"{disp_name} Royal Epic"]
+                  if key in preset:
+                      p = preset[key]
+                      disp_name, size, spd, price, tnames = p["name"], p["baseSize"], p["speed"], p["price"], p["tiers"]
+                  else:
+                      h_hash = int(hashlib.md5(key.encode()).hexdigest()[:6], 16)
+                      disp_name = key.replace("_", " ").replace("-", " ").title()
+                      size = 55 + (h_hash % 35)
+                      spd = round(0.48 + ((h_hash >> 4) % 45) / 100, 2)
+                      price = 100 + ((h_hash >> 8) % 10) * 15
+                      tnames = [f"{disp_name} Classic", f"{disp_name} Golden", f"{disp_name} Royal Epic"]
 
-              species_out[key] = {
-                  "name": disp_name,
-                  "baseSize": size,
-                  "speed": spd,
-                  "price": price,
-                  "fallbackColor": "#38bdf8",
-                  "tiers": [
-                      {"id": f"{key}_1", "name": tnames[0], "rarity": "Common", "hue": -15, "sat": 0.85, "val": 1.0,  "sell": int(price * 0.75)},
-                      {"id": f"{key}_2", "name": tnames[1], "rarity": "Rare",   "hue": 24,  "sat": 1.2,  "val": 1.05, "sell": int(price * 2.1)},
-                      {"id": f"{key}_3", "name": tnames[2], "rarity": "Epic",   "hue": 0,   "sat": 1.1,  "val": 1.05, "sell": int(price * 4.8)}
-                  ]
-              }
+                  species_out[key] = {
+                      "name": disp_name,
+                      "baseSize": size,
+                      "speed": spd,
+                      "price": price,
+                      "fallbackColor": "#38bdf8",
+                      "tiers": [
+                          {"id": f"{key}_1", "name": tnames[0], "rarity": "Common", "hue": -15, "sat": 0.85, "val": 1.0,  "sell": int(price * 0.75)},
+                          {"id": f"{key}_2", "name": tnames[1], "rarity": "Rare",   "hue": 24,  "sat": 1.2,  "val": 1.05, "sell": int(price * 2.1)},
+                          {"id": f"{key}_3", "name": tnames[2], "rarity": "Epic",   "hue": 0,   "sat": 1.1,  "val": 1.05, "sell": int(price * 4.8)}
+                      ]
+                  }
 
-          with open("assets/fishes-auto.js", "w") as f:
+          with open("www/assets/fishes-auto.js", "w") as f:
               f.write("window.AUTO_ASSET_PATHS = " + json.dumps(paths_out) + ";\n")
               f.write("window.AUTO_SPECIES = " + json.dumps(species_out) + ";\n")
           print("Auto-scan aset sukses!")
