@@ -1060,8 +1060,8 @@ function populateShop() {
   const pelletList = document.getElementById('pelletShopList');
   pelletList.innerHTML = PELLET_PACKS.map(p => {
     const fInfo = FEED_TYPES[p.feedType];
-    const borderCol = p.feedType === 'shrimp' ? 'rgba(251,113,133,0.4)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
-    const bgCol = p.feedType === 'shrimp' ? 'rgba(251,113,133,0.09)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
+    const borderCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.5)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
+    const bgCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.16)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
     return `
       <div style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:12px; padding:9px;">
         <div style="font-weight:700; font-size:12px; color:#f8fafc;">${fInfo.icon} ${p.label}</div>
