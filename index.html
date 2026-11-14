@@ -162,7 +162,7 @@
     </div>
   </div>
   <div class="rates-box" id="hatchPreview">Pilih 2 induk dewasa untuk melihat peluang mutasi.</div>
-  <button class="btn-primary" id="startBreedBtn" onclick="startBreeding()">&#129370; START BREEDING (50 Koin)</button>
+  <button class="btn-primary" id="startBreedBtn" onclick="startBreeding()">&#129370; START BREEDING (350 Koin)</button>
 </div>
 
 <!-- Shop Drawer -->
@@ -219,6 +219,8 @@ const ASSET_PATHS = {
   manfish: 'assets/manfish.jpg',
   arowana: 'assets/arowana.jpg'
 };
+
+const BREED_COST = 350;
 
 const FEED_TYPES = {
   regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 1, cooldownCut: 1, color: '#f59e0b' },
@@ -290,7 +292,7 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// High-Definition Solid Fish Sprite Extractor
+// High-Definition Solid Fish Sprite Extractor (strict threshold < 8 to preserve dark stripes)
 const processedSprites = {};
 let bgImage = null;
 
@@ -313,7 +315,6 @@ function extractSolidFishSprite(img) {
   const queue = new Int32Array(w * h);
   let head = 0, tail = 0;
 
-  // Batas ketat < 8 agar hanya background hitam murni yang dihapus, corak hitam ikan tetap utuh
   const isBgColor = (idx) => {
     const r = data[idx], g = data[idx + 1], b = data[idx + 2];
     return r < 8 && g < 8 && b < 8;
@@ -350,7 +351,6 @@ function extractSolidFishSprite(img) {
     }
   }
 
-  // Pastikan seluruh badan & sirip ikan 100% solid (tidak transparan)
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] > 0) {
       data[i + 3] = 255;
@@ -385,17 +385,20 @@ const GITHUB_REPO = "WFNMKBOT/aquabreed-hd";
 
 async function checkForceUpdate() {
   if (!CURRENT_VERSION.startsWith("v")) return;
+  const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/latest`;
   try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { cache: "no-store" });
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      cache: "no-store",
+      headers: { "Accept": "application/vnd.github+json" }
+    });
     if (!res.ok) return;
     const data = await res.json();
     const latestTag = data.tag_name;
 
     if (latestTag && latestTag !== CURRENT_VERSION) {
       const apkAsset = data.assets?.find(a => a.name.endsWith(".apk"));
-      const downloadUrl = apkAsset ? apkAsset.browser_download_url : data.html_url;
       document.getElementById("newVerText").textContent = latestTag;
-      document.getElementById("downloadApkBtn").href = downloadUrl;
+      document.getElementById("downloadApkBtn").href = apkAsset ? apkAsset.browser_download_url : fallbackUrl;
       document.getElementById("updateModal").classList.add("show");
     }
   } catch (e) {
@@ -866,7 +869,7 @@ function loop(now) {
         f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
-          f.eatCooldown = 600; // 10 menit (600 detik) jeda makan
+          f.eatCooldown = 600; // 10 menit jeda makan
           if (f.growth < 100) {
             f.growth = Math.min(100, Math.round(f.growth + (nearest.boost || 1)));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
@@ -1010,7 +1013,7 @@ function updateHatchPreview() {
     btn.disabled = true;
     return;
   }
-  btn.disabled = state.coins < 50 || state.fishes.length >= 18;
+  btn.disabled = state.coins < BREED_COST || state.fishes.length >= 18;
   const spA = SPECIES[male.species];
   const spB = SPECIES[female.species];
   box.innerHTML = `
@@ -1026,9 +1029,9 @@ function startBreeding() {
   const fId = Number(document.getElementById('femaleSelect').value);
   const male = state.fishes.find(f => f.id === mId);
   const female = state.fishes.find(f => f.id === fId);
-  if (!male || !female || state.coins < 50) return;
+  if (!male || !female || state.coins < BREED_COST) return;
 
-  state.coins -= 50;
+  state.coins -= BREED_COST;
   const chosenSp = Math.random() < 0.5 ? male.species : female.species;
   const roll = Math.random();
   const tier = roll < 0.55 ? 0 : (roll < 0.85 ? 1 : 2);
