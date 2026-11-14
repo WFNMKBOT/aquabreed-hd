@@ -58,7 +58,7 @@
     /* Expandable Drawer */
     .drawer {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(105%);
-      width: min(560px, 96vw); max-height: 76vh; overflow-y: auto;
+      width: min(560px, 96vw); max-height: 78vh; overflow-y: auto;
       background: rgba(9, 16, 28, 0.94); backdrop-filter: blur(16px);
       border: 1px solid rgba(56, 189, 248, 0.35); border-bottom: none;
       border-radius: 20px 20px 0 0; padding: 14px 16px 18px;
@@ -73,6 +73,10 @@
     .close-btn {
       background: rgba(255,255,255,0.1); border: none; color: #cbd5e1;
       width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer;
+    }
+    .shop-sec-title {
+      font-size: 11.5px; font-weight: 800; color: #38bdf8;
+      margin: 8px 0 6px; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .breed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .slot-box {
@@ -128,7 +132,8 @@
       <span>&#128032; AQUATOPIA</span>
       <span class="badge-ver">__APP_VERSION__</span>
     </div>
-    <div class="pill">&#129689; <span id="coinVal">300</span></div>
+    <div class="pill">&#129689; <span id="coinVal">500</span></div>
+    <div class="pill">&#127844; <span id="pelletVal">15</span></div>
     <div class="pill">&#128031; <span id="fishCount">5</span>/18</div>
   </div>
   <div class="hud-group">
@@ -139,7 +144,7 @@
 
 <!-- Minimalist Bottom Floating Pill -->
 <div class="dock-mini">
-  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">&#127844; Pakan (15)</button>
+  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">&#127844; Tebar 5 Pelet</button>
   <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">&#129516; Breeding</button>
   <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">&#128722; Toko</button>
 </div>
@@ -167,9 +172,14 @@
 <!-- Shop Drawer -->
 <div class="drawer" id="shopDrawer">
   <div class="drawer-header">
-    <strong style="font-size:14px;">&#128722; Toko Bibit Ikan Hias</strong>
+    <strong style="font-size:14px;">&#128722; Toko Pakan & Bibit Ikan Hias</strong>
     <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
   </div>
+
+  <div class="shop-sec-title">&#127844; Karung Pelet Ikan</div>
+  <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom: 12px;"></div>
+
+  <div class="shop-sec-title">&#128031; Bibit Ikan Hias</div>
   <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
 </div>
 
@@ -214,9 +224,12 @@ const ASSET_PATHS = {
   arowana: 'assets/arowana.jpg'
 };
 
-const PELLET_COST = 3;
-const CLUSTER_COUNT = 5;
-const CLUSTER_COST = PELLET_COST * CLUSTER_COUNT; // 15 Koin
+const PELLET_PACKS = [
+  { id: 'pack_10', label: 'Kantong Kecil (10 Pelet)', count: 10, price: 300 },
+  { id: 'pack_20', label: 'Kantong Sedang (20 Pelet)', count: 20, price: 600 },
+  { id: 'pack_30', label: 'Kantong Besar (30 Pelet)', count: 30, price: 1000 },
+  { id: 'pack_50', label: '1 Karung Penuh (50 Pelet)', count: 50, price: 1500 }
+];
 
 const SPECIES = {
   oranda: {
@@ -411,14 +424,15 @@ const SAVE_KEY = 'aquatopia_save_v1';
 
 function getDefaultState() {
   return {
-    coins: 300,
+    coins: 500,
+    pellets: 15,
     unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
     fishes: [
-      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 12 },
-      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 16 },
-      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 19 },
-      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 14 },
-      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 21 }
+      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 16 },
+      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 20 },
+      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 24 },
+      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 18 },
+      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 22 }
     ]
   };
 }
@@ -429,6 +443,7 @@ function saveGame() {
   try {
     const payload = {
       coins: state.coins,
+      pellets: state.pellets,
       unlocked: state.unlocked,
       fishes: state.fishes,
       lastSaved: Date.now()
@@ -448,6 +463,7 @@ function loadGame() {
     }
     const saved = JSON.parse(raw);
     if (typeof saved.coins === 'number') state.coins = saved.coins;
+    if (typeof saved.pellets === 'number') state.pellets = saved.pellets;
     if (Array.isArray(saved.unlocked)) state.unlocked = saved.unlocked;
     if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
       state.fishes = saved.fishes.map(f => ({
@@ -457,15 +473,15 @@ function loadGame() {
         vx: f.vx || SPECIES[f.species]?.speed || 0.5,
         vy: f.vy || 0,
         phase: f.phase || Math.random() * 6,
-        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (12 + Math.random() * 10)
+        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12)
       }));
     }
 
     if (saved.lastSaved) {
       const elapsedMins = Math.floor((Date.now() - saved.lastSaved) / 60000);
-      if (elapsedMins >= 1) {
+      if (elapsedMins >= 2) {
         const cappedMins = Math.min(elapsedMins, 480);
-        const earned = cappedMins * state.fishes.length * 2;
+        const earned = Math.floor(cappedMins / 2) * state.fishes.length;
         if (earned > 0) {
           state.coins += earned;
           document.getElementById('offlineMsg').innerHTML =
@@ -481,7 +497,7 @@ function loadGame() {
 }
 
 function resetSaveData() {
-  if (!confirm('Reset semua koin, ikan, dan katalog mutasi ke awal?')) return;
+  if (!confirm('Reset semua koin, stok pelet, ikan, dan katalog mutasi ke awal?')) return;
   localStorage.removeItem(SAVE_KEY);
   state = getDefaultState();
   saveGame();
@@ -539,13 +555,20 @@ function spawnFloatingText(x, y, text, color = '#fbbf24') {
   floatingTexts.push({ x, y, text, color, alpha: 1 });
 }
 
-// Tank Tap Interaction (Collect Coins, Inspect Fish, or Drop 1 Pellet = 3 Coins)
+// Adult Coin Drop Value: Common +5, Rare +10, Epic +18
+function getFishDropValue(tier) {
+  if (tier === 2) return 18; // Epic
+  if (tier === 1) return 10; // Rare
+  return 5;                  // Common
+}
+
+// Tank Tap Interaction (Collect Coins, Inspect Fish, or Drop 1 Pellet from Bag)
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
   const ty = e.clientY - rect.top;
 
-  // 1. Check if tapped a falling coin drop first
+  // 1. Collect falling coin drop
   for (let i = coinDrops.length - 1; i >= 0; i--) {
     const c = coinDrops[i];
     if (Math.hypot(tx - c.x, ty - c.y) <= 28) {
@@ -559,7 +582,7 @@ canvas.addEventListener('pointerdown', (e) => {
     }
   }
 
-  // 2. Check if tapped a fish
+  // 2. Inspect tapped fish
   for (let i = state.fishes.length - 1; i >= 0; i--) {
     const f = state.fishes[i];
     const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
@@ -569,40 +592,43 @@ canvas.addEventListener('pointerdown', (e) => {
     }
   }
 
-  // 3. Otherwise drop 1 pellet (3 Coins, or free emergency pellet if completely broke)
-  if (state.coins >= PELLET_COST) {
-    state.coins -= PELLET_COST;
+  // 3. Drop 1 pellet from inventory
+  if (state.pellets > 0) {
+    state.pellets -= 1;
     updateHUD();
     saveGame();
     pellets.push({ x: tx, y: ty, vy: 0.65, boost: 25 });
-    spawnFloatingText(tx, ty - 8, `-${PELLET_COST}`, '#f87171');
+    spawnFloatingText(tx, ty - 8, '-1 Pelet', '#fbbf24');
     playTone(520, 0.08);
-  } else if (state.fishes.length <= 2) {
+  } else if (state.coins < 300 && state.fishes.length <= 2) {
+    // Emergency anti-softlock pellet
     pellets.push({ x: tx, y: ty, vy: 0.65, boost: 10 });
-    showToast('Pakan darurat gratis (koin habis)!');
+    showToast('Stok habis! Menggunakan remah pakan darurat.');
   } else {
-    showToast(`Koin kurang! Butuh ${PELLET_COST} Koin per pelet.`);
+    showToast('Stok pelet habis! Beli karung pelet di Toko.');
   }
 });
 
-// Button: Drop 5 Pellets = 15 Coins
+// Button: Drop up to 5 Pellets from inventory
 function dropFoodCluster() {
-  if (state.coins < CLUSTER_COST) {
-    if (state.coins < PELLET_COST && state.fishes.length <= 2) {
-      for (let i = 0; i < 3; i++) {
+  if (state.pellets <= 0) {
+    if (state.coins < 300 && state.fishes.length <= 2) {
+      for (let i = 0; i < 2; i++) {
         pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, boost: 10 });
       }
-      showToast('Pakan darurat gratis ditebar!');
+      showToast('Remah pakan darurat ditebar!');
       return;
     }
-    return showToast(`Koin kurang! Butuh ${CLUSTER_COST} Koin (atau tap layar = ${PELLET_COST} Koin).`);
+    openDrawer('shopDrawer');
+    return showToast('Stok pelet habis! Silakan beli karung pelet di Toko.');
   }
 
-  state.coins -= CLUSTER_COST;
+  const toDrop = Math.min(5, state.pellets);
+  state.pellets -= toDrop;
   updateHUD();
   saveGame();
 
-  for (let i = 0; i < CLUSTER_COUNT; i++) {
+  for (let i = 0; i < toDrop; i++) {
     pellets.push({
       x: W * (0.25 + Math.random() * 0.5),
       y: 45 + Math.random() * 25,
@@ -610,9 +636,8 @@ function dropFoodCluster() {
       boost: 25
     });
   }
-  spawnFloatingText(W * 0.5, H - 65, `-${CLUSTER_COST} Koin`, '#f87171');
+  spawnFloatingText(W * 0.5, H - 65, `-${toDrop} Pelet`, '#fbbf24');
   playTone(620, 0.1);
-  showToast(`5 Pelet ditebar (-${CLUSTER_COST} Koin)!`);
 }
 
 // Draw Solid Fish (or Fallback Vector Fish)
@@ -717,13 +742,12 @@ function loop(now) {
   state.fishes.forEach(f => {
     const sp = SPECIES[f.species];
 
-    // Adult fish periodically drops collectible coins
     if (f.growth >= 100) {
-      f.dropTimer = (f.dropTimer ?? 15) - dt;
+      f.dropTimer = (f.dropTimer ?? 18) - dt;
       if (f.dropTimer <= 0) {
-        f.dropTimer = 16 + Math.random() * 10;
-        const dropVal = f.tier === 2 ? 40 : (f.tier === 1 ? 15 : 5);
-        coinDrops.push({ x: f.x, y: f.y + 10, val: dropVal, tier: f.tier, vy: 0.42 });
+        f.dropTimer = 20 + Math.random() * 12;
+        const dropVal = getFishDropValue(f.tier);
+        coinDrops.push({ x: f.x, y: f.y + 10, val: dropVal, tier: f.tier, vy: 0.4 });
       }
     }
 
@@ -744,8 +768,7 @@ function loop(now) {
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
             saveGame();
           } else {
-            // Adult fish eating speeds up its next coin drop by 5 seconds
-            f.dropTimer = Math.max(1, (f.dropTimer || 10) - 5);
+            f.dropTimer = Math.max(2, (f.dropTimer || 12) - 4);
             spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
           }
           playTone(760, 0.09);
@@ -794,7 +817,7 @@ function loop(now) {
     if (c.y > H - 28) coinDrops.splice(i, 1);
   }
 
-  // Floating Texts (-3, -15, +40 Koin)
+  // Floating Texts
   for (let i = floatingTexts.length - 1; i >= 0; i--) {
     const ft = floatingTexts[i];
     ft.y -= 0.7;
@@ -828,6 +851,7 @@ function loop(now) {
 // UI & Breeding
 function updateHUD() {
   document.getElementById('coinVal').textContent = state.coins;
+  document.getElementById('pelletVal').textContent = state.pellets;
   document.getElementById('fishCount').textContent = state.fishes.length;
   document.getElementById('dexCount').textContent = state.unlocked.length;
 }
@@ -898,7 +922,7 @@ function startBreeding() {
   state.fishes.push({
     id: Date.now(), species: chosenSp, tier, gender, growth: 40,
     x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0,
-    phase: Math.random() * 6, dropTimer: 15
+    phase: Math.random() * 6, dropTimer: 18
   });
 
   let bonusMsg = '';
@@ -915,6 +939,17 @@ function startBreeding() {
 }
 
 function populateShop() {
+  // 1. Pellet Sacks
+  const pelletList = document.getElementById('pelletShopList');
+  pelletList.innerHTML = PELLET_PACKS.map(p => `
+    <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.28); border-radius:12px; padding:9px;">
+      <div style="font-weight:700; font-size:12px; color:#ecfdf5;">${p.label}</div>
+      <div style="font-size:10.5px; color:#6ee7b7; margin:2px 0 7px;">Stok +${p.count} Butir Pelet</div>
+      <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyPelletPack('${p.id}')">&#129689; ${p.price.toLocaleString('id-ID')}</button>
+    </div>
+  `).join('');
+
+  // 2. Fish Seeds
   const list = document.getElementById('shopList');
   list.innerHTML = Object.keys(SPECIES).map(k => {
     const sp = SPECIES[k];
@@ -922,10 +957,23 @@ function populateShop() {
       <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px;">
         <div style="font-weight:700; font-size:12.5px;">${sp.name}</div>
         <div style="font-size:11px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak &#9794;/&#9792;</div>
-        <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
+        <button class="btn-mini btn-breed-open" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
       </div>
     `;
   }).join('');
+}
+
+function buyPelletPack(packId) {
+  const pack = PELLET_PACKS.find(p => p.id === packId);
+  if (!pack) return;
+  if (state.coins < pack.price) return showToast(`Koin kurang! Butuh ${pack.price.toLocaleString('id-ID')} Koin.`);
+
+  state.coins -= pack.price;
+  state.pellets += pack.count;
+  updateHUD();
+  saveGame();
+  playTone(720, 0.14);
+  showToast(`Beli ${pack.label} berhasil! Stok: ${state.pellets} pelet.`);
 }
 
 function buyFish(speciesKey) {
@@ -938,7 +986,7 @@ function buyFish(speciesKey) {
   const tierObj = sp.tiers[tier];
   state.fishes.push({
     id: Date.now(), species: speciesKey, tier, gender, growth: 65,
-    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 15
+    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 18
   });
   let bonusMsg = '';
   if (!state.unlocked.includes(tierObj.id)) {
@@ -954,7 +1002,7 @@ function buyFish(speciesKey) {
 function inspectFish(f) {
   const sp = SPECIES[f.species];
   const t = sp.tiers[f.tier];
-  const dropVal = f.tier === 2 ? 40 : (f.tier === 1 ? 15 : 5);
+  const dropVal = getFishDropValue(f.tier);
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong style="font-size:15px;">${t.name}</strong>
