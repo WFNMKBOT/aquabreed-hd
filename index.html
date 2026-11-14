@@ -134,7 +134,7 @@
   </div>
   <div class="hud-group">
     <div class="pill pill-btn" onclick="toggleAudio()" id="audioBtn">&#128266;</div>
-    <div class="pill pill-btn" onclick="openDex()">&#128214; <span id="dexCount">5</span>/<span id="dexTotal">15</span></div>
+    <div class="pill pill-btn" onclick="openDex()">&#128214; <span id="dexCount">5</span>/<span id="dexTotal">24</span></div>
   </div>
 </div>
 
@@ -175,7 +175,7 @@
   <div class="shop-sec-title">&#127844; Stok Pakan & Booster Pertumbuhan</div>
   <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom: 12px;"></div>
 
-  <div class="shop-sec-title">&#128031; Bibit Ikan Hias</div>
+  <div class="shop-sec-title">&#128031; Bibit Ikan Hias (8 Spesies)</div>
   <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
 </div>
 
@@ -217,7 +217,10 @@ const ASSET_PATHS = {
   betta: 'assets/betta.jpg',
   guppy: 'assets/guppy.jpg',
   manfish: 'assets/manfish.jpg',
-  arowana: 'assets/arowana.jpg'
+  arowana: 'assets/arowana.jpg',
+  neon: 'assets/neon.jpg',
+  discus: 'assets/discus.jpg',
+  koi: 'assets/koi.jpg'
 };
 
 const BREED_COST = 350;
@@ -240,6 +243,22 @@ const PELLET_PACKS = [
 ];
 
 const SPECIES = {
+  neon: {
+    name: 'Neon Tetra', baseSize: 34, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
+    tiers: [
+      { id: 'neon_1', name: 'Black Neon Tetra', rarity: 'Common', hue: 190, sat: 0.45, val: 0.9, sell: 35 },
+      { id: 'neon_2', name: 'Cardinal Tetra', rarity: 'Rare', hue: -18, sat: 1.25, val: 1.05, sell: 110 },
+      { id: 'neon_3', name: 'Diamond Blue Neon', rarity: 'Epic', hue: 0, sat: 1.15, val: 1.08, sell: 280 }
+    ]
+  },
+  guppy: {
+    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60, fallbackColor: '#ef4444',
+    tiers: [
+      { id: 'guppy_1', name: 'Guppy Blue Grass', rarity: 'Common', hue: 145, sat: 0.85, val: 1.0, sell: 45 },
+      { id: 'guppy_2', name: 'Guppy Tuxedo Red', rarity: 'Rare', hue: -18, sat: 1.1, val: 1.0, sell: 130 },
+      { id: 'guppy_3', name: 'Fancy Dragon Platinum', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 350 }
+    ]
+  },
   oranda: {
     name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80, fallbackColor: '#f97316',
     tiers: [
@@ -256,20 +275,28 @@ const SPECIES = {
       { id: 'betta_3', name: 'Halfmoon Galaxy Neon', rarity: 'Epic', hue: 0, sat: 1.1, val: 1.05, sell: 460 }
     ]
   },
-  guppy: {
-    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60, fallbackColor: '#ef4444',
-    tiers: [
-      { id: 'guppy_1', name: 'Guppy Blue Grass', rarity: 'Common', hue: 145, sat: 0.85, val: 1.0, sell: 45 },
-      { id: 'guppy_2', name: 'Guppy Tuxedo Red', rarity: 'Rare', hue: -18, sat: 1.1, val: 1.0, sell: 130 },
-      { id: 'guppy_3', name: 'Fancy Dragon Platinum', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 350 }
-    ]
-  },
   manfish: {
     name: 'Manfish Angel', baseSize: 68, speed: 0.5, price: 110, fallbackColor: '#eab308',
     tiers: [
       { id: 'manfish_1', name: 'Manfish Silver Zebra', rarity: 'Common', hue: 0, sat: 0.15, val: 1.05, sell: 85 },
       { id: 'manfish_2', name: 'Manfish Golden', rarity: 'Rare', hue: 18, sat: 1.25, val: 1.08, sell: 210 },
       { id: 'manfish_3', name: 'Koi Marble Angel', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 520 }
+    ]
+  },
+  discus: {
+    name: 'Discus Royal', baseSize: 66, speed: 0.42, price: 140, fallbackColor: '#fb7185',
+    tiers: [
+      { id: 'discus_1', name: 'Discus Pigeon Blood', rarity: 'Common', hue: 12, sat: 0.9, val: 1.02, sell: 110 },
+      { id: 'discus_2', name: 'Discus Turquoise', rarity: 'Rare', hue: 175, sat: 1.2, val: 1.0, sell: 270 },
+      { id: 'discus_3', name: 'Red Melon Royal', rarity: 'Epic', hue: 0, sat: 1.15, val: 1.05, sell: 650 }
+    ]
+  },
+  koi: {
+    name: 'Koi Kohaku', baseSize: 88, speed: 0.62, price: 190, fallbackColor: '#f43f5e',
+    tiers: [
+      { id: 'koi_1', name: 'Koi Bekko', rarity: 'Common', hue: 25, sat: 0.65, val: 1.02, sell: 145 },
+      { id: 'koi_2', name: 'Koi Sanke', rarity: 'Rare', hue: -8, sat: 1.15, val: 1.04, sell: 360 },
+      { id: 'koi_3', name: 'Tancho Kohaku', rarity: 'Epic', hue: 0, sat: 1.1, val: 1.05, sell: 900 }
     ]
   },
   arowana: {
@@ -488,17 +515,19 @@ function loadGame() {
 
     if (Array.isArray(saved.unlocked)) state.unlocked = saved.unlocked;
     if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
-      state.fishes = saved.fishes.map(f => ({
-        ...f,
-        growth: Math.round(f.growth ?? 0),
-        x: Math.min(Math.max(60, f.x || W * 0.5), W - 60),
-        y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
-        vx: f.vx || SPECIES[f.species]?.speed || 0.5,
-        vy: f.vy || 0,
-        phase: f.phase || Math.random() * 6,
-        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12),
-        eatCooldown: typeof f.eatCooldown === 'number' ? f.eatCooldown : 0
-      }));
+      state.fishes = saved.fishes
+        .filter(f => SPECIES[f.species])
+        .map(f => ({
+          ...f,
+          growth: Math.round(f.growth ?? 0),
+          x: Math.min(Math.max(60, f.x || W * 0.5), W - 60),
+          y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
+          vx: f.vx || SPECIES[f.species]?.speed || 0.5,
+          vy: f.vy || 0,
+          phase: f.phase || Math.random() * 6,
+          dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12),
+          eatCooldown: typeof f.eatCooldown === 'number' ? f.eatCooldown : 0
+        }));
     }
 
     if (saved.lastSaved) {
@@ -603,7 +632,7 @@ function getHungryFishCount() {
   return Math.max(0, hungry - pellets.length);
 }
 
-// Tank Tap Interaction
+// Tank Tap Interaction (Hemat Pakan saat ikan sudah kenyang)
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
@@ -618,7 +647,6 @@ canvas.addEventListener('pointerdown', (e) => {
     }
   }
 
-  // Cegah pakan keluar jika semua ikan masih kenyang
   if (getHungryFishCount() <= 0) {
     showToast('Semua ikan masih kenyang! Pakan dihemat.');
     return;
@@ -649,7 +677,7 @@ canvas.addEventListener('pointerdown', (e) => {
   }
 });
 
-// Button: Drop up to 5 Active Feeds (sesuai jumlah ikan yang lapar)
+// Button: Drop up to 5 Active Feeds (sesuai jumlah ikan lapar)
 function dropFoodCluster() {
   const hungryAvail = getHungryFishCount();
   if (hungryAvail <= 0) {
@@ -673,7 +701,6 @@ function dropFoodCluster() {
     return showToast(`Stok ${fInfo.name} habis! Silakan beli di Toko.`);
   }
 
-  // Otomatis menyesuaikan jumlah tebar dengan jumlah ikan yang benar-benar lapar (maks 5)
   const toDrop = Math.min(5, curStock, hungryAvail);
   state.pellets[fType] = curStock - toDrop;
   updateHUD();
