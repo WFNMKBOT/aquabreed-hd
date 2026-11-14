@@ -30,10 +30,6 @@
     }
     .pill-btn { cursor: pointer; transition: transform 0.12s; }
     .pill-btn:active { transform: scale(0.94); }
-    .badge-ver {
-      background: linear-gradient(135deg, #f59e0b, #d97706); color: #000;
-      font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 999px;
-    }
 
     /* Minimalist Bottom Floating Pill */
     .dock-mini {
@@ -128,10 +124,6 @@
 <!-- Top Compact HUD -->
 <div class="hud-top">
   <div class="hud-group">
-    <div class="pill">
-      <span>&#128032; AQUATOPIA</span>
-      <span class="badge-ver">__APP_VERSION__</span>
-    </div>
     <div class="pill">&#129689; <span id="coinVal">500</span></div>
     <div class="pill">&#127844; <span id="pelletVal">15</span></div>
     <div class="pill">&#128031; <span id="fishCount">5</span>/18</div>
@@ -601,7 +593,6 @@ canvas.addEventListener('pointerdown', (e) => {
     spawnFloatingText(tx, ty - 8, '-1 Pelet', '#fbbf24');
     playTone(520, 0.08);
   } else if (state.coins < 300 && state.fishes.length <= 2) {
-    // Emergency anti-softlock pellet
     pellets.push({ x: tx, y: ty, vy: 0.65, boost: 10 });
     showToast('Stok habis! Menggunakan remah pakan darurat.');
   } else {
