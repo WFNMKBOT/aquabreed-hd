@@ -175,7 +175,7 @@
   <div class="shop-sec-title">&#127844; Stok Pakan & Booster Pertumbuhan</div>
   <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom: 12px;"></div>
 
-  <div class="shop-sec-title">&#128031; Bibit Ikan Hias (8 Spesies)</div>
+  <div class="shop-sec-title" id="shopFishHeader">&#128031; Bibit Ikan Hias</div>
   <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
 </div>
 
@@ -210,8 +210,11 @@
   </div>
 </div>
 
+<!-- Auto-Generated Fish Manifest from GitHub Actions -->
+<script src="assets/fishes-auto.js"></script>
+
 <script>
-const ASSET_PATHS = {
+const DEFAULT_ASSET_PATHS = {
   bg: 'assets/bg-aquascape.jpg',
   oranda: 'assets/oranda.jpg',
   betta: 'assets/betta.jpg',
@@ -223,26 +226,7 @@ const ASSET_PATHS = {
   koi: 'assets/koi.jpg'
 };
 
-const BREED_COST = 350;
-
-const FEED_TYPES = {
-  regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 1, cooldownCut: 1, color: '#f59e0b' },
-  worm:    { name: 'Cacing Sutra',  icon: '&#129713;', boost: 3, cooldownCut: 3, color: '#ef4444' },
-  shrimp:  { name: 'Udang Kristal', icon: '&#129424;', boost: 8, cooldownCut: 8, color: '#c084fc' }
-};
-
-const PELLET_PACKS = [
-  { id: 'reg_10', feedType: 'regular', label: 'Pelet Kecil (10)',      count: 10, price: 300 },
-  { id: 'reg_20', feedType: 'regular', label: 'Pelet Sedang (20)',     count: 20, price: 600 },
-  { id: 'reg_30', feedType: 'regular', label: 'Pelet Besar (30)',      count: 30, price: 1000 },
-  { id: 'reg_50', feedType: 'regular', label: '1 Karung Pelet (50)',   count: 50, price: 1500 },
-  { id: 'wrm_10', feedType: 'worm',    label: 'Cacing Sutra (10)',     count: 10, price: 400 },
-  { id: 'wrm_25', feedType: 'worm',    label: 'Cacing Sutra (25)',     count: 25, price: 900 },
-  { id: 'shr_5',  feedType: 'shrimp',  label: 'Udang Kristal (5)',     count: 5,  price: 500 },
-  { id: 'shr_15', feedType: 'shrimp',  label: 'Udang Kristal (15)',    count: 15, price: 1500 }
-];
-
-const SPECIES = {
+const DEFAULT_SPECIES = {
   neon: {
     name: 'Neon Tetra', baseSize: 34, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
     tiers: [
@@ -309,6 +293,29 @@ const SPECIES = {
   }
 };
 
+// Gabungkan data otomatis dari GitHub Actions (jika ada) dengan default
+const ASSET_PATHS = Object.assign({}, DEFAULT_ASSET_PATHS, window.AUTO_ASSET_PATHS || {});
+const SPECIES = Object.assign({}, DEFAULT_SPECIES, window.AUTO_SPECIES || {});
+
+const BREED_COST = 350;
+
+const FEED_TYPES = {
+  regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 1, cooldownCut: 1, color: '#f59e0b' },
+  worm:    { name: 'Cacing Sutra',  icon: '&#129713;', boost: 3, cooldownCut: 3, color: '#ef4444' },
+  shrimp:  { name: 'Udang Kristal', icon: '&#129424;', boost: 8, cooldownCut: 8, color: '#c084fc' }
+};
+
+const PELLET_PACKS = [
+  { id: 'reg_10', feedType: 'regular', label: 'Pelet Kecil (10)',      count: 10, price: 300 },
+  { id: 'reg_20', feedType: 'regular', label: 'Pelet Sedang (20)',     count: 20, price: 600 },
+  { id: 'reg_30', feedType: 'regular', label: 'Pelet Besar (30)',      count: 30, price: 1000 },
+  { id: 'reg_50', feedType: 'regular', label: '1 Karung Pelet (50)',   count: 50, price: 1500 },
+  { id: 'wrm_10', feedType: 'worm',    label: 'Cacing Sutra (10)',     count: 10, price: 400 },
+  { id: 'wrm_25', feedType: 'worm',    label: 'Cacing Sutra (25)',     count: 25, price: 900 },
+  { id: 'shr_5',  feedType: 'shrimp',  label: 'Udang Kristal (5)',     count: 5,  price: 500 },
+  { id: 'shr_15', feedType: 'shrimp',  label: 'Udang Kristal (15)',    count: 15, price: 1500 }
+];
+
 const canvas = document.getElementById('tank');
 const ctx = canvas.getContext('2d');
 let W = canvas.width = window.innerWidth;
@@ -319,7 +326,7 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// High-Definition Solid Fish Sprite Extractor (strict threshold < 8 to preserve dark stripes)
+// High-Definition Solid Fish Sprite Extractor (Vignette-Safe + 100% Solid Fish Body)
 const processedSprites = {};
 let bgImage = null;
 
@@ -342,9 +349,20 @@ function extractSolidFishSprite(img) {
   const queue = new Int32Array(w * h);
   let head = 0, tail = 0;
 
+  // Deteksi otomatis warna vignette di 4 sudut gambar
+  const cornerIdx = [0, (w - 1) * 4, ((h - 1) * w) * 4, ((h - 1) * w + (w - 1)) * 4];
+  let maxCorner = 8;
+  cornerIdx.forEach(ci => {
+    const lum = Math.max(data[ci], data[ci + 1], data[ci + 2]);
+    if (lum < 45 && lum > maxCorner) maxCorner = lum;
+  });
+  const bgLimit = Math.min(38, maxCorner + 10);
+
   const isBgColor = (idx) => {
     const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-    return r < 8 && g < 8 && b < 8;
+    const maxC = Math.max(r, g, b);
+    const minC = Math.min(r, g, b);
+    return maxC <= bgLimit && (maxC - minC) <= 10;
   };
 
   for (let x = 0; x < w; x++) {
@@ -378,6 +396,7 @@ function extractSolidFishSprite(img) {
     }
   }
 
+  // Kunci opacity 100% solid untuk seluruh tubuh & sirip ikan
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] > 0) {
       data[i + 3] = 255;
@@ -605,14 +624,12 @@ function spawnFloatingText(x, y, text, color = '#fbbf24') {
   floatingTexts.push({ x, y, text, color, alpha: 1 });
 }
 
-// Adult Coin Drop Value: Common +5, Rare +10, Epic +18
 function getFishDropValue(tier) {
   if (tier === 2) return 18;
   if (tier === 1) return 10;
   return 5;
 }
 
-// Switch Active Feed Type
 function cycleActiveFeed() {
   const order = ['regular', 'worm', 'shrimp'];
   const nextIdx = (order.indexOf(state.activeFeed) + 1) % order.length;
@@ -677,7 +694,7 @@ canvas.addEventListener('pointerdown', (e) => {
   }
 });
 
-// Button: Drop up to 5 Active Feeds (sesuai jumlah ikan lapar)
+// Button: Drop up to 5 Active Feeds
 function dropFoodCluster() {
   const hungryAvail = getHungryFishCount();
   if (hungryAvail <= 0) {
@@ -914,7 +931,7 @@ function loop(now) {
         f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
-          f.eatCooldown = 600; // 10 menit jeda makan
+          f.eatCooldown = 600;
           if (f.growth < 100) {
             f.growth = Math.min(100, Math.round(f.growth + (nearest.boost || 1)));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
@@ -1011,13 +1028,16 @@ function loop(now) {
 // UI & Breeding
 function updateHUD() {
   const curFeed = FEED_TYPES[state.activeFeed] || FEED_TYPES.regular;
+  const totalSpecies = Object.keys(SPECIES).length;
   document.getElementById('coinVal').textContent = state.coins;
   document.getElementById('feedIcon').innerHTML = curFeed.icon;
   document.getElementById('pelletVal').textContent = state.pellets[state.activeFeed] ?? 0;
   document.getElementById('dropClusterBtn').innerHTML = `${curFeed.icon} Tebar 5`;
   document.getElementById('fishCount').textContent = state.fishes.length;
   document.getElementById('dexCount').textContent = state.unlocked.length;
-  document.getElementById('dexTotal').textContent = Object.keys(SPECIES).length * 3;
+  document.getElementById('dexTotal').textContent = totalSpecies * 3;
+  const shopHeader = document.getElementById('shopFishHeader');
+  if (shopHeader) shopHeader.innerHTML = `&#128031; Bibit Ikan Hias (${totalSpecies} Spesies)`;
 }
 
 function openDrawer(id) {
