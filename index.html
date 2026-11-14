@@ -139,7 +139,7 @@
 
 <!-- Minimalist Bottom Floating Pill -->
 <div class="dock-mini">
-  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">&#127844; Pakan</button>
+  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">&#127844; Pakan (15)</button>
   <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">&#129516; Breeding</button>
   <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">&#128722; Toko</button>
 </div>
@@ -214,6 +214,10 @@ const ASSET_PATHS = {
   arowana: 'assets/arowana.jpg'
 };
 
+const PELLET_COST = 3;
+const CLUSTER_COUNT = 5;
+const CLUSTER_COST = PELLET_COST * CLUSTER_COUNT; // 15 Koin
+
 const SPECIES = {
   oranda: {
     name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80, fallbackColor: '#f97316',
@@ -267,7 +271,7 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// Edge Flood-Fill Background Removal (Keeps internal dark scales 100% SOLID OPAQUE!)
+// Edge Flood-Fill Background Removal
 const processedSprites = {};
 let bgImage = null;
 
@@ -402,7 +406,7 @@ function loadAllAssets() {
   });
 }
 
-// Auto-Save System (localStorage + Offline Idle Earnings)
+// Auto-Save System
 const SAVE_KEY = 'aquatopia_save_v1';
 
 function getDefaultState() {
@@ -410,11 +414,11 @@ function getDefaultState() {
     coins: 300,
     unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
     fishes: [
-      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0 },
-      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5 },
-      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4 },
-      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1 },
-      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0 }
+      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 12 },
+      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 16 },
+      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 19 },
+      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 14 },
+      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 21 }
     ]
   };
 }
@@ -452,11 +456,11 @@ function loadGame() {
         y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
         vx: f.vx || SPECIES[f.species]?.speed || 0.5,
         vy: f.vy || 0,
-        phase: f.phase || Math.random() * 6
+        phase: f.phase || Math.random() * 6,
+        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (12 + Math.random() * 10)
       }));
     }
 
-    // Calculate offline idle coins (2 coins/min per fish, capped at 8 hours)
     if (saved.lastSaved) {
       const elapsedMins = Math.floor((Date.now() - saved.lastSaved) / 60000);
       if (elapsedMins >= 1) {
@@ -491,7 +495,6 @@ function closeOfflineModal() {
   saveGame();
 }
 
-// Save automatically every 5 seconds & when app goes to background
 setInterval(saveGame, 5000);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveGame();
@@ -499,6 +502,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', saveGame);
 
 let pellets = [];
+let coinDrops = [];
+let floatingTexts = [];
 let bubbles = Array.from({ length: 24 }, () => ({
   x: Math.random() * W, y: Math.random() * H,
   r: 1.2 + Math.random() * 2.8, speed: 0.4 + Math.random() * 0.9
@@ -530,12 +535,31 @@ function showToast(msg) {
   t._timer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// Tank Tap Interaction
+function spawnFloatingText(x, y, text, color = '#fbbf24') {
+  floatingTexts.push({ x, y, text, color, alpha: 1 });
+}
+
+// Tank Tap Interaction (Collect Coins, Inspect Fish, or Drop 1 Pellet = 3 Coins)
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
   const ty = e.clientY - rect.top;
 
+  // 1. Check if tapped a falling coin drop first
+  for (let i = coinDrops.length - 1; i >= 0; i--) {
+    const c = coinDrops[i];
+    if (Math.hypot(tx - c.x, ty - c.y) <= 28) {
+      state.coins += c.val;
+      coinDrops.splice(i, 1);
+      updateHUD();
+      saveGame();
+      playTone(980, 0.14);
+      spawnFloatingText(c.x, c.y, `+${c.val} Koin`, '#34d399');
+      return;
+    }
+  }
+
+  // 2. Check if tapped a fish
   for (let i = state.fishes.length - 1; i >= 0; i--) {
     const f = state.fishes[i];
     const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
@@ -545,20 +569,50 @@ canvas.addEventListener('pointerdown', (e) => {
     }
   }
 
-  pellets.push({ x: tx, y: ty, vy: 0.65 });
-  playTone(520, 0.08);
+  // 3. Otherwise drop 1 pellet (3 Coins, or free emergency pellet if completely broke)
+  if (state.coins >= PELLET_COST) {
+    state.coins -= PELLET_COST;
+    updateHUD();
+    saveGame();
+    pellets.push({ x: tx, y: ty, vy: 0.65, boost: 25 });
+    spawnFloatingText(tx, ty - 8, `-${PELLET_COST}`, '#f87171');
+    playTone(520, 0.08);
+  } else if (state.fishes.length <= 2) {
+    pellets.push({ x: tx, y: ty, vy: 0.65, boost: 10 });
+    showToast('Pakan darurat gratis (koin habis)!');
+  } else {
+    showToast(`Koin kurang! Butuh ${PELLET_COST} Koin per pelet.`);
+  }
 });
 
+// Button: Drop 5 Pellets = 15 Coins
 function dropFoodCluster() {
-  for (let i = 0; i < 5; i++) {
+  if (state.coins < CLUSTER_COST) {
+    if (state.coins < PELLET_COST && state.fishes.length <= 2) {
+      for (let i = 0; i < 3; i++) {
+        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, boost: 10 });
+      }
+      showToast('Pakan darurat gratis ditebar!');
+      return;
+    }
+    return showToast(`Koin kurang! Butuh ${CLUSTER_COST} Koin (atau tap layar = ${PELLET_COST} Koin).`);
+  }
+
+  state.coins -= CLUSTER_COST;
+  updateHUD();
+  saveGame();
+
+  for (let i = 0; i < CLUSTER_COUNT; i++) {
     pellets.push({
       x: W * (0.25 + Math.random() * 0.5),
       y: 45 + Math.random() * 25,
-      vy: 0.55 + Math.random() * 0.3
+      vy: 0.55 + Math.random() * 0.3,
+      boost: 25
     });
   }
+  spawnFloatingText(W * 0.5, H - 65, `-${CLUSTER_COST} Koin`, '#f87171');
   playTone(620, 0.1);
-  showToast('Pelet ditebar! Ikan otomatis makan & tumbuh.');
+  showToast(`5 Pelet ditebar (-${CLUSTER_COST} Koin)!`);
 }
 
 // Draw Solid Fish (or Fallback Vector Fish)
@@ -619,7 +673,10 @@ function drawFish(f, time) {
 }
 
 // Main Loop
+let lastTime = performance.now();
 function loop(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
   const time = now / 1000;
 
   if (bgImage) {
@@ -647,16 +704,29 @@ function loop(now) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
+  // Pellets
   for (let i = pellets.length - 1; i >= 0; i--) {
     const p = pellets[i];
     p.y += p.vy;
     ctx.fillStyle = '#f59e0b';
-    ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, Math.PI * 2); ctx.fill();
     if (p.y > H - 24) pellets.splice(i, 1);
   }
 
+  // Fishes & Periodic Coin Drops from Adult Fish
   state.fishes.forEach(f => {
     const sp = SPECIES[f.species];
+
+    // Adult fish periodically drops collectible coins
+    if (f.growth >= 100) {
+      f.dropTimer = (f.dropTimer ?? 15) - dt;
+      if (f.dropTimer <= 0) {
+        f.dropTimer = 16 + Math.random() * 10;
+        const dropVal = f.tier === 2 ? 40 : (f.tier === 1 ? 15 : 5);
+        coinDrops.push({ x: f.x, y: f.y + 10, val: dropVal, tier: f.tier, vy: 0.42 });
+      }
+    }
+
     if (pellets.length > 0) {
       let nearest = pellets[0], bestD = Infinity;
       pellets.forEach(p => {
@@ -665,18 +735,19 @@ function loop(now) {
       });
       if (bestD < 260) {
         const ang = Math.atan2(nearest.y - f.y, nearest.x - f.x);
-        f.vx += Math.cos(ang) * 0.04;
-        f.vy += Math.sin(ang) * 0.04;
+        f.vx += Math.cos(ang) * 0.045;
+        f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
           if (f.growth < 100) {
-            f.growth = Math.min(100, f.growth + 25);
+            f.growth = Math.min(100, f.growth + (nearest.boost || 25));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
+            saveGame();
           } else {
-            state.coins += 12;
-            updateHUD();
+            // Adult fish eating speeds up its next coin drop by 5 seconds
+            f.dropTimer = Math.max(1, (f.dropTimer || 10) - 5);
+            spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
           }
-          saveGame();
           playTone(760, 0.09);
         }
       }
@@ -697,6 +768,51 @@ function loop(now) {
     drawFish(f, time);
   });
 
+  // Render Collectible Coin Drops
+  for (let i = coinDrops.length - 1; i >= 0; i--) {
+    const c = coinDrops[i];
+    c.y += c.vy;
+    c.x += Math.sin(time * 3 + i) * 0.25;
+
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.fillStyle = c.tier === 2 ? '#38bdf8' : (c.tier === 1 ? '#f59e0b' : '#eab308');
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#090d16';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`+${c.val}`, 0, 0.5);
+    ctx.restore();
+
+    if (c.y > H - 28) coinDrops.splice(i, 1);
+  }
+
+  // Floating Texts (-3, -15, +40 Koin)
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y -= 0.7;
+    ft.alpha -= 0.018;
+    if (ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha = ft.alpha;
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  }
+
+  // Bubbles
   ctx.strokeStyle = 'rgba(224, 242, 254, 0.45)';
   ctx.lineWidth = 1;
   bubbles.forEach(b => {
@@ -781,15 +897,21 @@ function startBreeding() {
 
   state.fishes.push({
     id: Date.now(), species: chosenSp, tier, gender, growth: 40,
-    x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0, phase: Math.random() * 6
+    x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0,
+    phase: Math.random() * 6, dropTimer: 15
   });
 
-  if (!state.unlocked.includes(tierObj.id)) state.unlocked.push(tierObj.id);
+  let bonusMsg = '';
+  if (!state.unlocked.includes(tierObj.id)) {
+    state.unlocked.push(tierObj.id);
+    state.coins += 100;
+    bonusMsg = ' (+100 Koin Katalog Baru!)';
+  }
   updateHUD();
   saveGame();
   closeDrawers();
   playTone(880, 0.25);
-  showToast(`Menetas: ${tierObj.name} (${tierObj.rarity})!`);
+  showToast(`Menetas: ${tierObj.name} (${tierObj.rarity})${bonusMsg}`);
 }
 
 function populateShop() {
@@ -816,17 +938,23 @@ function buyFish(speciesKey) {
   const tierObj = sp.tiers[tier];
   state.fishes.push({
     id: Date.now(), species: speciesKey, tier, gender, growth: 65,
-    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6
+    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 15
   });
-  if (!state.unlocked.includes(tierObj.id)) state.unlocked.push(tierObj.id);
+  let bonusMsg = '';
+  if (!state.unlocked.includes(tierObj.id)) {
+    state.unlocked.push(tierObj.id);
+    state.coins += 100;
+    bonusMsg = ' (+100 Koin Katalog Baru!)';
+  }
   updateHUD();
   saveGame();
-  showToast(`Beli ${tierObj.name} (${gender === 'M' ? 'Jantan' : 'Betina'}) berhasil!`);
+  showToast(`Beli ${tierObj.name} (${gender === 'M' ? 'Jantan' : 'Betina'})${bonusMsg}`);
 }
 
 function inspectFish(f) {
   const sp = SPECIES[f.species];
   const t = sp.tiers[f.tier];
+  const dropVal = f.tier === 2 ? 40 : (f.tier === 1 ? 15 : 5);
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong style="font-size:15px;">${t.name}</strong>
@@ -835,7 +963,7 @@ function inspectFish(f) {
     <div style="font-size:12px; color:#cbd5e1; line-height:1.7; margin-bottom:12px;">
       <div>Kelamin: <b>${f.gender === 'M' ? '&#9794; Jantan' : '&#9792; Betina'}</b></div>
       <div>Rarity: <b style="color:#f59e0b;">${t.rarity}</b></div>
-      <div>Pertumbuhan: <b>${f.growth}% ${f.growth >= 100 ? '(Siap Kawin)' : '(Anakan)'}</b></div>
+      <div>Pertumbuhan: <b>${f.growth}% ${f.growth >= 100 ? '(Siap Kawin & Drop +' + dropVal + ' Koin)' : '(Anakan)'}</b></div>
     </div>
     <button class="btn-primary" style="background:#ef4444;" onclick="sellFish(${f.id})">&#128176; Jual Ikan (+${t.sell} Koin)</button>
   `;
