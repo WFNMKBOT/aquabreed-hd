@@ -354,7 +354,6 @@ function prepareSpriteClean(img, speciesKey) {
   const isDarkBg = (cornerR < 35 && cornerG < 35 && cornerB < 35);
 
   if (isDarkBg) {
-    // Flood fill sederhana untuk menghapus latar hitam luar tanpa merusak sirip dalam
     const visited = new Uint8Array(w * h);
     const queue = new Int32Array(w * h);
     let head = 0, tail = 0;
@@ -374,7 +373,7 @@ function prepareSpriteClean(img, speciesKey) {
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
 
       if (r <= 32 && g <= 32 && b <= 32) {
-        data[idx + 3] = 0; // Buat transparan
+        data[idx + 3] = 0;
         const neighbors = [
           px > 0 ? p - 1 : -1,
           px < w - 1 ? p + 1 : -1,
@@ -394,7 +393,6 @@ function prepareSpriteClean(img, speciesKey) {
 
   octx.putImageData(imgData, 0, 0);
 
-  // Crop rapat ke objek ikan
   let minX = w, maxX = 0, minY = h, maxY = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -413,7 +411,6 @@ function prepareSpriteClean(img, speciesKey) {
   cropped.width = cw; cropped.height = ch;
   const cctx = cropped.getContext('2d');
 
-  // Auto flip jika ikan menghadap ke kiri
   const isLeft = LEFT_FACING_KEYS.has(speciesKey);
   if (isLeft) {
     cctx.translate(cw, 0);
