@@ -688,6 +688,52 @@ function drawFish(f, time) {
   }
 }
 
+function drawGoldCoin(x, y, t) {
+  const spinScale = 0.75 + Math.abs(Math.cos(t * 4)) * 0.25; // Efek berputar halus
+  const r = 11;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(spinScale, 1);
+
+  // 1. Bayangan luar tipis
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 4;
+
+  // 2. Badan utama koin dengan gradasi emas metalik
+  const grad = ctx.createLinearGradient(-r, -r, r, r);
+  grad.addColorStop(0, '#fef08a');   // Kilau kuning muda
+  grad.addColorStop(0.5, '#eab308'); // Emas utama
+  grad.addColorStop(1, '#a16207');   // Bayangan emas tua
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. Pinggiran koin (rim)
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#fef9c3';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 4. Cincin dalam koin
+  ctx.strokeStyle = '#ca8a04';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 5. Simbol timbul di tengah koin
+  ctx.fillStyle = '#fef9c3';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', 0, 0.5);
+
+  ctx.restore();
+}
+
 // Main Loop
 let lastTime = performance.now();
 function loop(now) {
@@ -738,7 +784,13 @@ function loop(now) {
       if (f.dropTimer <= 0) {
         f.dropTimer = 20 + Math.random() * 12;
         const dropVal = getFishDropValue(f.tier);
-        coinDrops.push({ x: f.x, y: f.y + 10, val: dropVal, tier: f.tier, vy: 0.4 });
+                coinDrops.push({
+          x: f.x,
+          y: f.y + 10,
+          val: dropVal,
+          delay: 0.6,
+          vy: -0.6
+        });
       }
     }
 
@@ -783,29 +835,40 @@ function loop(now) {
   });
 
   // Render Collectible Coin Drops
+    const targetX = 45; // Posisi X ikon koin di pojok kiri atas
+  const targetY = 24; // Posisi Y ikon koin di pojok kiri atas
+
   for (let i = coinDrops.length - 1; i >= 0; i--) {
     const c = coinDrops[i];
-    c.y += c.vy;
-    c.x += Math.sin(time * 3 + i) * 0.25;
 
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.fillStyle = c.tier === 2 ? '#38bdf8' : (c.tier === 1 ? '#f59e0b' : '#eab308');
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.arc(0, 0, 12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    if (c.delay > 0) {
+      // Fase 1: Mengambang pelan di air
+      c.delay -= dt;
+      c.y += c.vy;
+      c.vy *= 0.94;
+    } else {
+      // Fase 2: Otomatis terbang menuju HUD koin
+      const dx = targetX - c.x;
+      const dy = targetY - c.y;
+      const dist = Math.hypot(dx, dy);
 
-    ctx.fillStyle = '#090d16';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`+${c.val}`, 0, 0.5);
-    ctx.restore();
+      if (dist < 24) {
+        state.coins += c.val;
+        updateHUD();
+        saveGame();
+        playTone(980, 0.12);
+        spawnFloatingText(targetX + 20, targetY + 18, `+${c.val}`, '#34d399');
+        coinDrops.splice(i, 1);
+        continue;
+      }
 
-    if (c.y > H - 28) coinDrops.splice(i, 1);
+      // Percepat gerakan menuju target
+      const ang = Math.atan2(dy, dx);
+      c.x += Math.cos(ang) * 9;
+      c.y += Math.sin(ang) * 9;
+    }
+
+    drawGoldCoin(c.x, c.y, time + i);
   }
 
   // Floating Texts
