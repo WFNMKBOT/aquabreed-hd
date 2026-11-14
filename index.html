@@ -178,6 +178,16 @@
   <div class="modal-card" id="modalBody"></div>
 </div>
 
+<!-- Offline Idle Reward Modal -->
+<div class="modal-bg" id="offlineModal" onclick="if(event.target===this) closeOfflineModal()">
+  <div class="modal-card" style="text-align: center; border-color: #10b981;">
+    <div style="font-size: 34px; margin-bottom: 6px;">&#128176;</div>
+    <strong style="font-size: 16px; color: #10b981; display: block; margin-bottom: 6px;">Selamat Datang Kembali!</strong>
+    <p id="offlineMsg" style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;"></p>
+    <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="closeOfflineModal()">Klaim Koin</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Force Update Modal -->
@@ -392,18 +402,101 @@ function loadAllAssets() {
   });
 }
 
-// Game State
-let state = {
-  coins: 300,
-  unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
-  fishes: [
-    { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0 },
-    { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5 },
-    { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4 },
-    { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1 },
-    { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0 }
-  ]
-};
+// Auto-Save System (localStorage + Offline Idle Earnings)
+const SAVE_KEY = 'aquatopia_save_v1';
+
+function getDefaultState() {
+  return {
+    coins: 300,
+    unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
+    fishes: [
+      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0 },
+      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5 },
+      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4 },
+      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1 },
+      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0 }
+    ]
+  };
+}
+
+let state = getDefaultState();
+
+function saveGame() {
+  try {
+    const payload = {
+      coins: state.coins,
+      unlocked: state.unlocked,
+      fishes: state.fishes,
+      lastSaved: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn('Auto-save failed:', e);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      saveGame();
+      return;
+    }
+    const saved = JSON.parse(raw);
+    if (typeof saved.coins === 'number') state.coins = saved.coins;
+    if (Array.isArray(saved.unlocked)) state.unlocked = saved.unlocked;
+    if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
+      state.fishes = saved.fishes.map(f => ({
+        ...f,
+        x: Math.min(Math.max(60, f.x || W * 0.5), W - 60),
+        y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
+        vx: f.vx || SPECIES[f.species]?.speed || 0.5,
+        vy: f.vy || 0,
+        phase: f.phase || Math.random() * 6
+      }));
+    }
+
+    // Calculate offline idle coins (2 coins/min per fish, capped at 8 hours)
+    if (saved.lastSaved) {
+      const elapsedMins = Math.floor((Date.now() - saved.lastSaved) / 60000);
+      if (elapsedMins >= 1) {
+        const cappedMins = Math.min(elapsedMins, 480);
+        const earned = cappedMins * state.fishes.length * 2;
+        if (earned > 0) {
+          state.coins += earned;
+          document.getElementById('offlineMsg').innerHTML =
+            `Ikanmu tetap berenang selama <b>${cappedMins} menit</b> saat kamu offline dan mengumpulkan <b>+${earned} Koin</b>!`;
+          document.getElementById('offlineModal').classList.add('show');
+        }
+      }
+    }
+    saveGame();
+  } catch (e) {
+    console.warn('Load save failed:', e);
+  }
+}
+
+function resetSaveData() {
+  if (!confirm('Reset semua koin, ikan, dan katalog mutasi ke awal?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  state = getDefaultState();
+  saveGame();
+  updateHUD();
+  closeModal();
+  showToast('Data permainan berhasil di-reset!');
+}
+
+function closeOfflineModal() {
+  document.getElementById('offlineModal').classList.remove('show');
+  saveGame();
+}
+
+// Save automatically every 5 seconds & when app goes to background
+setInterval(saveGame, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveGame();
+});
+window.addEventListener('beforeunload', saveGame);
 
 let pellets = [];
 let bubbles = Array.from({ length: 24 }, () => ({
@@ -583,6 +676,7 @@ function loop(now) {
             state.coins += 12;
             updateHUD();
           }
+          saveGame();
           playTone(760, 0.09);
         }
       }
@@ -692,6 +786,7 @@ function startBreeding() {
 
   if (!state.unlocked.includes(tierObj.id)) state.unlocked.push(tierObj.id);
   updateHUD();
+  saveGame();
   closeDrawers();
   playTone(880, 0.25);
   showToast(`Menetas: ${tierObj.name} (${tierObj.rarity})!`);
@@ -725,6 +820,7 @@ function buyFish(speciesKey) {
   });
   if (!state.unlocked.includes(tierObj.id)) state.unlocked.push(tierObj.id);
   updateHUD();
+  saveGame();
   showToast(`Beli ${tierObj.name} (${gender === 'M' ? 'Jantan' : 'Betina'}) berhasil!`);
 }
 
@@ -755,6 +851,7 @@ function sellFish(id) {
     state.coins += sellVal;
     state.fishes.splice(idx, 1);
     updateHUD();
+    saveGame();
     closeModal();
     showToast(`Terjual +${sellVal} Koin!`);
   }
@@ -764,7 +861,7 @@ function openDex() {
   let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
     <strong>&#128214; Katalog Mutasi (${state.unlocked.length}/15)</strong>
     <button class="close-btn" onclick="closeModal()">&#10005;</button>
-  </div><div style="max-height:55vh; overflow-y:auto; font-size:12px;">`;
+  </div><div style="max-height:50vh; overflow-y:auto; font-size:12px; margin-bottom:10px;">`;
   Object.values(SPECIES).forEach(sp => {
     sp.tiers.forEach(t => {
       const ok = state.unlocked.includes(t.id);
@@ -774,7 +871,8 @@ function openDex() {
       </div>`;
     });
   });
-  html += '</div>';
+  html += `</div>
+    <button onclick="resetSaveData()" style="width:100%; padding:7px; border-radius:8px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.12); color:#fca5a5; font-size:11px; font-weight:700; cursor:pointer;">&#128260; Reset Save Data</button>`;
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('infoModal').classList.add('show');
 }
@@ -783,6 +881,7 @@ function closeModal() { document.getElementById('infoModal').classList.remove('s
 
 checkForceUpdate();
 loadAllAssets();
+loadGame();
 updateHUD();
 requestAnimationFrame(loop);
 </script>
