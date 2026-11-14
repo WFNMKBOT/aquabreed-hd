@@ -1,112 +1,92 @@
-name: Build & Release Android APK
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    tags:
+      - 'v*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Kode
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 18
 
-      - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+      - name: Setup Java (JDK 17)
+        uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Siapkan Folder Web & Inject App Version
-        run: |
-          npm install
-          npm run build
-          sed -i "s/__APP_VERSION__/v1.0.${{ github.run_number }}/g" www/index.html
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Generate Android Project & App Icon
+      - name: Auto-Scan Aset Ikan & Buat Manifest
         run: |
-          npm install -D @capacitor/assets
-          npx cap add android
-          
-          IMG_FILE="assets/oranda.jpg"
-          if [ -f "$IMG_FILE" ]; then
-            pip install pillow -q
-            python3 -c "from PIL import Image; img = Image.open('$IMG_FILE').convert('RGBA'); img.save('assets/icon.png'); img.save('assets/icon-only.png')"
-            npx capacitor-assets generate --android --iconBackgroundColor '#06090e' --splashBackgroundColor '#06090e'
-            rm -rf android/app/src/main/res/mipmap-anydpi-v26
-            rm -f assets/icon.png assets/icon-only.png
-          fi
-          npx cap sync
+          python3 - << 'EOF'
+          import os, json, hashlib
 
-      - name: Set Fullscreen Landscape Orientation
-        run: |
-          sed -i 's/android:name=".MainActivity"/android:name=".MainActivity" android:screenOrientation="sensorLandscape"/' android/app/src/main/AndroidManifest.xml
-          cat << 'EOF' > android/app/src/main/java/id/my/ipps/aquabreed/MainActivity.java
-          package id.my.ipps.aquabreed;
-          import android.os.Bundle;
-          import android.view.View;
-          import android.view.WindowManager;
-          import com.getcapacitor.BridgeActivity;
+          assets_dir = "assets"
+          ignored = {"bg-aquascape.jpg", "icon.png", "icon-only.png"}
 
-          public class MainActivity extends BridgeActivity {
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                  getWindow().getDecorView().setSystemUiVisibility(
-                      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                      | View.SYSTEM_UI_FLAG_FULLSCREEN
-                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                  );
-              }
+          preset = {
+              "neon":    {"name": "Neon Tetra",      "baseSize": 36,  "speed": 1.15, "price": 45,  "tiers": ["Black Neon Tetra", "Cardinal Tetra", "Diamond Blue Neon"]},
+              "guppy":   {"name": "Guppy Dragon",    "baseSize": 48,  "speed": 0.95, "price": 60,  "tiers": ["Guppy Blue Grass", "Guppy Tuxedo Red", "Fancy Dragon Platinum"]},
+              "oranda":  {"name": "Koki Oranda",     "baseSize": 64,  "speed": 0.55, "price": 80,  "tiers": ["Oranda Red Cap", "Oranda Tricolor", "Oranda Calico Royal"]},
+              "betta":   {"name": "Cupang Halfmoon", "baseSize": 58,  "speed": 0.65, "price": 90,  "tiers": ["Halfmoon Royal Blue", "Halfmoon Bicolor", "Halfmoon Galaxy Neon"]},
+              "manfish": {"name": "Manfish Angel",   "baseSize": 68,  "speed": 0.50, "price": 110, "tiers": ["Manfish Silver Zebra", "Manfish Golden", "Koi Marble Angel"]},
+              "discus":  {"name": "Discus Royal",    "baseSize": 66,  "speed": 0.42, "price": 140, "tiers": ["Discus Pigeon Blood", "Discus Turquoise", "Red Melon Royal"]},
+              "koi":     {"name": "Koi Kohaku",      "baseSize": 88,  "speed": 0.62, "price": 190, "tiers": ["Koi Bekko", "Koi Sanke", "Tancho Kohaku"]},
+              "arowana": {"name": "Arwana",          "baseSize": 105, "speed": 0.72, "price": 220, "tiers": ["Arwana Silver", "Arwana Golden Crossback", "Super Red Arwana"]}
           }
+
+          species_out = {}
+          paths_out = {"bg": "assets/bg-aquascape.jpg"}
+
+          for fname in sorted(os.listdir(assets_dir)):
+              if fname in ignored or not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                  continue
+              key = os.path.splitext(fname)[0].lower().replace(" ", "_")
+              paths_out[key] = f"assets/{fname}"
+
+              if key in preset:
+                  p = preset[key]
+                  disp_name, size, spd, price, tnames = p["name"], p["baseSize"], p["speed"], p["price"], p["tiers"]
+              else:
+                  h_hash = int(hashlib.md5(key.encode()).hexdigest()[:6], 16)
+                  disp_name = key.replace("_", " ").replace("-", " ").title()
+                  size = 55 + (h_hash % 35)
+                  spd = round(0.48 + ((h_hash >> 4) % 45) / 100, 2)
+                  price = 100 + ((h_hash >> 8) % 10) * 15
+                  tnames = [f"{disp_name} Classic", f"{disp_name} Golden", f"{disp_name} Royal Epic"]
+
+              species_out[key] = {
+                  "name": disp_name,
+                  "baseSize": size,
+                  "speed": spd,
+                  "price": price,
+                  "fallbackColor": "#38bdf8",
+                  "tiers": [
+                      {"id": f"{key}_1", "name": tnames[0], "rarity": "Common", "hue": -15, "sat": 0.85, "val": 1.0,  "sell": int(price * 0.75)},
+                      {"id": f"{key}_2", "name": tnames[1], "rarity": "Rare",   "hue": 24,  "sat": 1.2,  "val": 1.05, "sell": int(price * 2.1)},
+                      {"id": f"{key}_3", "name": tnames[2], "rarity": "Epic",   "hue": 0,   "sat": 1.1,  "val": 1.05, "sell": int(price * 4.8)}
+                  ]
+              }
+
+          with open("assets/fishes-auto.js", "w") as f:
+              f.write("window.AUTO_ASSET_PATHS = " + json.dumps(paths_out) + ";\n")
+              f.write("window.AUTO_SPECIES = " + json.dumps(species_out) + ";\n")
+          print("Auto-scan aset sukses!")
           EOF
 
-      - name: Decode Keystore Permanen & Naikkan VersionCode
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\n\r ' | base64 -d > android/app/release.keystore || true
-          fi
-          if [ ! -s android/app/release.keystore ]; then
-            rm -f android/app/release.keystore
-            keytool -genkey -v -keystore android/app/release.keystore -alias wadirect -keyalg RSA -keysize 2048 -validity 10000 -storepass wadirect123 -keypass wadirect123 -dname "CN=Wahyu Firman Nugraha, O=WFN, L=Tangerang, S=Banten, C=ID"
-          fi
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/g" android/app/build.gradle
-          sed -i 's/versionName "1.0"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
+      - name: Sync Capacitor Android
+        run: npx cap sync android
 
-      - name: Build Signed Release APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$PWD/app/release.keystore \
-            -Pandroid.injected.signing.store.password=wadirect123 \
-            -Pandroid.injected.signing.key.alias=wadirect \
-            -Pandroid.injected.signing.key.password=wadirect123
-
-      - name: Rename APK
-        run: |
-          mv android/app/build/outputs/apk/release/app-release.apk Aquatopia.apk
-
-      - name: Publish ke GitHub Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Aquatopia v1.0.${{ github.run_number }}
-          body: |
-            Rilis resmi game **Aquatopia** (Build #${{ github.run_number }}).
-            Simulasi Aquascape & Breeding Ikan Hias 3D Realistis.
-          files: Aquatopia.apk
+      - name: Build APK with Gradle
+        working-directory: android
+        run: ./gradlew assembleRelease
