@@ -221,9 +221,9 @@ const ASSET_PATHS = {
 };
 
 const FEED_TYPES = {
-  regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 5,  cooldownCut: 3,  color: '#f59e0b' },
-  worm:    { name: 'Cacing Sutra',  icon: '&#129713;', boost: 12, cooldownCut: 6,  color: '#ef4444' },
-  shrimp:  { name: 'Udang Kristal', icon: '&#129424;', boost: 25, cooldownCut: 12, color: '#fb7185' }
+  regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 2,  cooldownCut: 2,  color: '#f59e0b' },
+  worm:    { name: 'Cacing Sutra',  icon: '&#129713;', boost: 6,  cooldownCut: 5,  color: '#ef4444' },
+  shrimp:  { name: 'Udang Kristal', icon: '&#129424;', boost: 15, cooldownCut: 10, color: '#c084fc' }
 };
 
 const PELLET_PACKS = [
@@ -431,11 +431,11 @@ function getDefaultState() {
     activeFeed: 'regular',
     unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
     fishes: [
-      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 16 },
-      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 20 },
-      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 24 },
-      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 18 },
-      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 22 }
+      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 16, eatCooldown: 0 },
+      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 20, eatCooldown: 0 },
+      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 24, eatCooldown: 0 },
+      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 18, eatCooldown: 0 },
+      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 22, eatCooldown: 0 }
     ]
   };
 }
@@ -468,7 +468,6 @@ function loadGame() {
     const saved = JSON.parse(raw);
     if (typeof saved.coins === 'number') state.coins = saved.coins;
 
-    // Migrate old numeric pellet count or load object inventory
     if (typeof saved.pellets === 'number') {
       state.pellets = { regular: saved.pellets, worm: 0, shrimp: 0 };
     } else if (saved.pellets && typeof saved.pellets === 'object') {
@@ -492,7 +491,8 @@ function loadGame() {
         vx: f.vx || SPECIES[f.species]?.speed || 0.5,
         vy: f.vy || 0,
         phase: f.phase || Math.random() * 6,
-        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12)
+        dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12),
+        eatCooldown: 0
       }));
     }
 
@@ -631,7 +631,7 @@ canvas.addEventListener('pointerdown', (e) => {
     spawnFloatingText(tx, ty - 8, `-1 ${fInfo.name}`, fInfo.color);
     playTone(520, 0.08);
   } else if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
-    pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 5, cooldownCut: 2, color: '#f59e0b' });
+    pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 2, cooldownCut: 2, color: '#f59e0b' });
     showToast('Stok habis! Menggunakan remah pakan darurat.');
   } else {
     showToast(`Stok ${fInfo.name} habis! Tap ikon pakan di atas atau beli di Toko.`);
@@ -647,7 +647,7 @@ function dropFoodCluster() {
   if (curStock <= 0) {
     if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
       for (let i = 0; i < 2; i++) {
-        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 5, cooldownCut: 2, color: '#f59e0b' });
+        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 2, cooldownCut: 2, color: '#f59e0b' });
       }
       showToast('Remah pakan darurat ditebar!');
       return;
@@ -825,7 +825,7 @@ function loop(now) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4.6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffe4e6';
+      ctx.strokeStyle = '#f3e8ff';
       ctx.lineWidth = 1;
       ctx.stroke();
     } else {
@@ -840,6 +840,7 @@ function loop(now) {
   // Fishes & Periodic Coin Drops from Adult Fish
   state.fishes.forEach(f => {
     const sp = SPECIES[f.species];
+    if (f.eatCooldown > 0) f.eatCooldown -= dt;
 
     if (f.growth >= 100) {
       f.dropTimer = (f.dropTimer ?? 18) - dt;
@@ -856,7 +857,7 @@ function loop(now) {
       }
     }
 
-    if (pellets.length > 0) {
+    if (pellets.length > 0 && (f.eatCooldown || 0) <= 0) {
       let nearest = pellets[0], bestD = Infinity;
       pellets.forEach(p => {
         const d = Math.hypot(p.x - f.x, p.y - f.y);
@@ -868,12 +869,13 @@ function loop(now) {
         f.vy += Math.sin(ang) * 0.045;
         if (bestD < 22) {
           pellets.splice(pellets.indexOf(nearest), 1);
+          f.eatCooldown = 2.5;
           if (f.growth < 100) {
-            f.growth = Math.min(100, f.growth + (nearest.boost || 5));
+            f.growth = Math.min(100, f.growth + (nearest.boost || 2));
             showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
             saveGame();
           } else {
-            f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 3));
+            f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 2));
             spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
           }
           playTone(760, 0.09);
@@ -1039,7 +1041,7 @@ function startBreeding() {
   state.fishes.push({
     id: Date.now(), species: chosenSp, tier, gender, growth: 0,
     x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0,
-    phase: Math.random() * 6, dropTimer: 18
+    phase: Math.random() * 6, dropTimer: 18, eatCooldown: 0
   });
 
   let bonusMsg = '';
@@ -1056,12 +1058,12 @@ function startBreeding() {
 }
 
 function populateShop() {
-  // 1. Feed Packs (Regular Pellet, Bloodworm, Crystal Shrimp)
+  // 1. Feed Packs (Regular Pellet: Green, Bloodworm: Red, Crystal Shrimp: Purple)
   const pelletList = document.getElementById('pelletShopList');
   pelletList.innerHTML = PELLET_PACKS.map(p => {
     const fInfo = FEED_TYPES[p.feedType];
-    const borderCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.5)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
-    const bgCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.16)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
+    const borderCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.55)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
+    const bgCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.18)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
     return `
       <div style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:12px; padding:9px;">
         <div style="font-weight:700; font-size:12px; color:#f8fafc;">${fInfo.icon} ${p.label}</div>
@@ -1108,8 +1110,8 @@ function buyFish(speciesKey) {
   const tier = Math.random() < 0.75 ? 0 : 1;
   const tierObj = sp.tiers[tier];
   state.fishes.push({
-    id: Date.now(), species: speciesKey, tier, gender, growth: 65,
-    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 18
+    id: Date.now(), species: speciesKey, tier, gender, growth: 0,
+    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 18, eatCooldown: 0
   });
   let bonusMsg = '';
   if (!state.unlocked.includes(tierObj.id)) {
