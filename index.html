@@ -313,9 +313,10 @@ function extractSolidFishSprite(img) {
   const queue = new Int32Array(w * h);
   let head = 0, tail = 0;
 
+  // Batas ketat < 8 agar hanya background hitam murni yang dihapus, corak hitam ikan tetap utuh
   const isBgColor = (idx) => {
     const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-    return Math.max(r, g, b) < 16;
+    return r < 8 && g < 8 && b < 8;
   };
 
   for (let x = 0; x < w; x++) {
@@ -349,6 +350,7 @@ function extractSolidFishSprite(img) {
     }
   }
 
+  // Pastikan seluruh badan & sirip ikan 100% solid (tidak transparan)
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] > 0) {
       data[i + 3] = 255;
