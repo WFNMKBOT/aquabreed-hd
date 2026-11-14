@@ -515,16 +515,6 @@ function loadGame() {
   }
 }
 
-function resetSaveData() {
-  if (!confirm('Reset semua koin, stok pakan, ikan, dan katalog mutasi ke awal?')) return;
-  localStorage.removeItem(SAVE_KEY);
-  state = getDefaultState();
-  saveGame();
-  updateHUD();
-  closeModal();
-  showToast('Data permainan berhasil di-reset!');
-}
-
 function closeOfflineModal() {
   document.getElementById('offlineModal').classList.remove('show');
   saveGame();
@@ -1174,10 +1164,6 @@ function openDex() {
     });
   });
   html += `</div>
-    <button onclick="resetSaveData()" style="width:100%; padding:7px; border-radius:8px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.12); color:#fca5a5; font-size:11px; font-weight:700; cursor:pointer;">&#128260; Reset Save Data</button>`;
-  document.getElementById('modalBody').innerHTML = html;
-  document.getElementById('infoModal').classList.add('show');
-}
 
 function closeModal() { document.getElementById('infoModal').classList.remove('show'); }
 
