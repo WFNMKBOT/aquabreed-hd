@@ -327,11 +327,11 @@ window.addEventListener('resize', () => {
   H = canvas.height = window.innerHeight;
 });
 
-// Sprite Loader & HSL Tier Tinter (Menggunakan PNG AI rembg *_cut.png secara langsung)
+// Sprite Loader & Background Remover (Otomatis hapus latar hitam & balik arah hadap kanan)
 const processedSprites = {};
 let bgImage = null;
 
-function prepareBaseSprite(img, speciesKey, isCutPng) {
+function prepareSpriteClean(img, speciesKey) {
   const maxDim = 640;
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
   const w = Math.round(img.width * scale);
@@ -342,14 +342,85 @@ function prepareBaseSprite(img, speciesKey, isCutPng) {
   const octx = off.getContext('2d');
   octx.imageSmoothingEnabled = true;
   octx.imageSmoothingQuality = 'high';
-
-  // Jika dibuka secara lokal tanpa build GitHub Actions, balik arah ikan hadap-kiri
-  if (!isCutPng && LEFT_FACING_KEYS.has(speciesKey)) {
-    octx.translate(w, 0);
-    octx.scale(-1, 1);
-  }
   octx.drawImage(img, 0, 0, w, h);
-  return off;
+
+  const imgData = octx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  // Deteksi warna latar dari sudut
+  const cornerR = (data[0] + data[(w-1)*4] + data[((h-1)*w)*4] + data[((h-1)*w+(w-1))*4]) / 4;
+  const cornerG = (data[1] + data[(w-1)*4+1] + data[((h-1)*w)*4+1] + data[((h-1)*w+(w-1))*4+1]) / 4;
+  const cornerB = (data[2] + data[(w-1)*4+2] + data[((h-1)*w)*4+2] + data[((h-1)*w+(w-1))*4+2]) / 4;
+  const isDarkBg = (cornerR < 35 && cornerG < 35 && cornerB < 35);
+
+  if (isDarkBg) {
+    // Flood fill sederhana untuk menghapus latar hitam luar tanpa merusak sirip dalam
+    const visited = new Uint8Array(w * h);
+    const queue = new Int32Array(w * h);
+    let head = 0, tail = 0;
+
+    const pushQ = (x, y) => {
+      const p = y * w + x;
+      if (!visited[p]) { visited[p] = 1; queue[tail++] = p; }
+    };
+
+    for (let x = 0; x < w; x++) { pushQ(x, 0); pushQ(x, h-1); }
+    for (let y = 0; y < h; y++) { pushQ(0, y); pushQ(w-1, y); }
+
+    while (head < tail) {
+      const p = queue[head++];
+      const px = p % w, py = (p / w) | 0;
+      const idx = p * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+
+      if (r <= 32 && g <= 32 && b <= 32) {
+        data[idx + 3] = 0; // Buat transparan
+        const neighbors = [
+          px > 0 ? p - 1 : -1,
+          px < w - 1 ? p + 1 : -1,
+          py > 0 ? p - w : -1,
+          py < h - 1 ? p + w : -1
+        ];
+        for (let i = 0; i < 4; i++) {
+          const np = neighbors[i];
+          if (np >= 0 && !visited[np]) {
+            visited[np] = 1;
+            queue[tail++] = np;
+          }
+        }
+      }
+    }
+  }
+
+  octx.putImageData(imgData, 0, 0);
+
+  // Crop rapat ke objek ikan
+  let minX = w, maxX = 0, minY = h, maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (octx.getImageData(x, y, 1, 1).data[3] > 15) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  const cw = Math.max(1, maxX - minX + 1);
+  const ch = Math.max(1, maxY - minY + 1);
+  const cropped = document.createElement('canvas');
+  cropped.width = cw; cropped.height = ch;
+  const cctx = cropped.getContext('2d');
+
+  // Auto flip jika ikan menghadap ke kiri
+  const isLeft = LEFT_FACING_KEYS.has(speciesKey);
+  if (isLeft) {
+    cctx.translate(cw, 0);
+    cctx.scale(-1, 1);
+  }
+  cctx.drawImage(off, minX, minY, cw, ch, 0, 0, cw, ch);
+  return cropped;
 }
 
 function rgbToHsl(r, g, b) {
@@ -423,7 +494,7 @@ function getTintedSprite(speciesKey, tierIndex) {
     d[i] = nr;
     d[i + 1] = ng;
     d[i + 2] = nb;
-    d[i + 3] = a >= 220 ? 255 : a;
+    d[i + 3] = a;
   }
 
   cx.putImageData(imgData, 0, 0);
@@ -466,11 +537,10 @@ function loadAllAssets() {
   Object.keys(ASSET_PATHS).forEach(key => {
     if (key === 'bg') return;
     const src = ASSET_PATHS[key];
-    const isCutPng = src.toLowerCase().endsWith('_cut.png');
     const img = new Image();
     img.src = src;
     img.onload = () => {
-      processedSprites[`${key}_base`] = prepareBaseSprite(img, key, isCutPng);
+      processedSprites[`${key}_base`] = prepareSpriteClean(img, key);
     };
   });
 }
