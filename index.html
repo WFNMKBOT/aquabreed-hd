@@ -351,7 +351,7 @@ function extractSolidFishSprite(img, speciesKey) {
   const imgData = octx.getImageData(0, 0, w, h);
   const data = imgData.data;
 
-  // 1. Hapus area watermark kecil di pojok kanan bawah (5% lebar x 5% tinggi) jika ada
+  // 1. Bersihkan area watermark kecil di pojok kanan bawah
   const wmStartX = Math.floor(w * 0.90);
   const wmStartY = Math.floor(h * 0.92);
   for (let y = wmStartY; y < h; y++) {
@@ -361,54 +361,75 @@ function extractSolidFishSprite(img, speciesKey) {
     }
   }
 
+  // 2. Hitung peta kecerahan & deteksi kontur luar sirip (Edge-Barrier)
+  // Supaya flood-fill tidak bocor masuk ke sirip/belang hitam ikan yang menyentuh pinggir
+  const lumMap = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    lumMap[i] = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+  }
+
+  const barrier = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = y * w + x;
+      const gx = Math.abs(lumMap[p + 1] - lumMap[p - 1]);
+      const gy = Math.abs(lumMap[p + w] - lumMap[p - w]);
+      // Jika ada lonjakan kontras (batas sirip/badan ikan), pasang tembok penghalang
+      if (gx + gy > 24 && lumMap[p] > 10) {
+        barrier[p] = 1;
+      }
+    }
+  }
+
+  // Hitung kecerahan tepi luar gambar untuk mengatasi vignette Discus/Koi
+  let borderMaxLum = 10;
+  for (let x = 0; x < w; x += 4) {
+    const l1 = lumMap[x];
+    const l2 = lumMap[(h - 1) * w + x];
+    if (l1 < 50 && l1 > borderMaxLum) borderMaxLum = l1;
+    if (l2 < 50 && l2 > borderMaxLum) borderMaxLum = l2;
+  }
+  const bgLimit = Math.min(44, borderMaxLum + 12);
+
+  const isBgColor = (p) => {
+    if (barrier[p]) return false;
+    const idx = p * 4;
+    const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+    const maxC = Math.max(r, g, b);
+    const minC = Math.min(r, g, b);
+    return maxC <= bgLimit && (maxC - minC) <= 12;
+  };
+
   const visited = new Uint8Array(w * h);
   const queue = new Int32Array(w * h);
   let head = 0, tail = 0;
 
-  // Hitung kecerahan rata-rata tepi luar gambar untuk deteksi vignette
-  let borderMaxLum = 12;
-  for (let x = 0; x < w; x += 4) {
-    const i1 = x * 4, i2 = ((h - 1) * w + x) * 4;
-    const l1 = Math.max(data[i1], data[i1 + 1], data[i1 + 2]);
-    const l2 = Math.max(data[i2], data[i2 + 1], data[i2 + 2]);
-    if (l1 < 55 && l1 > borderMaxLum) borderMaxLum = l1;
-    if (l2 < 55 && l2 > borderMaxLum) borderMaxLum = l2;
-  }
-  const bgLimit = Math.min(48, borderMaxLum + 14);
-
-  const isBgColor = (idx) => {
-    const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-    const maxC = Math.max(r, g, b);
-    const minC = Math.min(r, g, b);
-    // Hapus piksel latar gelap netral (vignette/hitam) tanpa menyentuh tubuh ikan
-    return maxC <= bgLimit && (maxC - minC) <= 14;
-  };
-
   for (let x = 0; x < w; x++) {
     const top = x, bot = (h - 1) * w + x;
-    if (!visited[top] && isBgColor(top * 4)) { visited[top] = 1; queue[tail++] = top; }
-    if (!visited[bot] && isBgColor(bot * 4)) { visited[bot] = 1; queue[tail++] = bot; }
+    if (!visited[top] && isBgColor(top)) { visited[top] = 1; queue[tail++] = top; }
+    if (!visited[bot] && isBgColor(bot)) { visited[bot] = 1; queue[tail++] = bot; }
   }
   for (let y = 0; y < h; y++) {
     const left = y * w, right = y * w + (w - 1);
-    if (!visited[left] && isBgColor(left * 4)) { visited[left] = 1; queue[tail++] = left; }
-    if (!visited[right] && isBgColor(right * 4)) { visited[right] = 1; queue[tail++] = right; }
+    if (!visited[left] && isBgColor(left)) { visited[left] = 1; queue[tail++] = left; }
+    if (!visited[right] && isBgColor(right)) { visited[right] = 1; queue[tail++] = right; }
   }
 
-  // 8-directional flood fill agar celah antar duri sirip bersih tuntas
-  const dx8 = [-1, 1, 0, 0, -1, 1, -1, 1];
-  const dy8 = [0, 0, -1, 1, -1, -1, 1, 1];
+  // Gunakan 4-directional flood fill agar tidak menembus celah diagonal tipis kontur sirip
+  const dx4 = [-1, 1, 0, 0];
+  const dy4 = [0, 0, -1, 1];
 
   while (head < tail) {
     const p = queue[head++];
     const px = p % w, py = (p / w) | 0;
     data[p * 4 + 3] = 0;
 
-    for (let d = 0; d < 8; d++) {
-      const nx = px + dx8[d], ny = py + dy8[d];
+    for (let d = 0; d < 4; d++) {
+      const nx = px + dx4[d], ny = py + dy4[d];
       if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
         const np = ny * w + nx;
-        if (!visited[np] && isBgColor(np * 4)) {
+        if (!visited[np] && isBgColor(np)) {
           visited[np] = 1;
           queue[tail++] = np;
         }
@@ -416,13 +437,12 @@ function extractSolidFishSprite(img, speciesKey) {
     }
   }
 
-  // 2. Hapus pulau noise gelap kecil yang terpisah di luar tubuh utama ikan (connected components)
+  // 3. Ambil hanya pulau ikan utama (buang noise bintik terpisah di luar)
+  const dx8 = [-1, 1, 0, 0, -1, 1, -1, 1];
+  const dy8 = [0, 0, -1, 1, -1, -1, 1, 1];
   const compVisited = new Uint8Array(w * h);
-  let largestCompSize = 0;
-  let largestCompId = -1;
   const compIds = new Int32Array(w * h).fill(-1);
-  const compSizes = [];
-  let currentComp = 0;
+  let largestCompSize = 0, largestCompId = -1, currentComp = 0;
 
   for (let i = 0; i < w * h; i++) {
     if (data[i * 4 + 3] > 0 && !compVisited[i]) {
@@ -446,7 +466,6 @@ function extractSolidFishSprite(img, speciesKey) {
           }
         }
       }
-      compSizes[currentComp] = cTail;
       if (cTail > largestCompSize) {
         largestCompSize = cTail;
         largestCompId = currentComp;
@@ -455,7 +474,6 @@ function extractSolidFishSprite(img, speciesKey) {
     }
   }
 
-  // Simpan hanya komponen ikan utama & kunci alpha = 255 (100% solid, nol transparan!)
   let minX = w, maxX = 0, minY = h, maxY = 0;
   for (let i = 0; i < w * h; i++) {
     if (compIds[i] === largestCompId) {
@@ -472,18 +490,14 @@ function extractSolidFishSprite(img, speciesKey) {
 
   octx.putImageData(imgData, 0, 0);
 
-  // Crop rapat ke bounding box ikan agar proporsi ukuran akurat
   const cw = Math.max(1, maxX - minX + 1);
   const ch = Math.max(1, maxY - minY + 1);
   const cropped = document.createElement('canvas');
   cropped.width = cw; cropped.height = ch;
   const cctx = cropped.getContext('2d');
 
-  // Auto-deteksi apakah ikan menghadap kiri (berdasarkan posisi pusat massa mata/kepala vs ekor + daftar)
   let isLeftFacing = LEFT_FACING_KEYS.has(speciesKey);
   if (!isLeftFacing && !['oranda', 'betta', 'guppy', 'manfish', 'arowana'].includes(speciesKey)) {
-    // Hitung ketebalan vertikal di 20% kiri vs 20% kanan: ekor bercabang biasanya memiliki tinggi rentang lebih besar/terpecah
-    let leftSpan = 0, rightSpan = 0;
     const lx = minX + Math.floor(cw * 0.15);
     const rx = maxX - Math.floor(cw * 0.15);
     let lMin = h, lMax = 0, rMin = h, rMax = 0;
@@ -491,13 +505,10 @@ function extractSolidFishSprite(img, speciesKey) {
       if (data[(y * w + lx) * 4 + 3] > 0) { if (y < lMin) lMin = y; if (y > lMax) lMax = y; }
       if (data[(y * w + rx) * 4 + 3] > 0) { if (y < rMin) rMin = y; if (y > rMax) rMax = y; }
     }
-    leftSpan = lMax - lMin;
-    rightSpan = rMax - rMin;
-    if (rightSpan > leftSpan * 1.15) isLeftFacing = true;
+    if ((rMax - rMin) > (lMax - lMin) * 1.15) isLeftFacing = true;
   }
 
   if (isLeftFacing) {
-    // Balik horizontal sehingga semua base sprite 100% menghadap ke KANAN
     cctx.translate(cw, 0);
     cctx.scale(-1, 1);
   }
