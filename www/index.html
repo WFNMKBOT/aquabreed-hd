@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Aquatopia</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden;
+      background: #04080d; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f1f5f9;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* Top HUD */
+    .hud-top {
+      position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
+      display: flex; justify-content: space-between; align-items: center;
+      pointer-events: none; z-index: 20; gap: 8px;
+    }
+    .hud-group { display: flex; align-items: center; gap: 6px; pointer-events: auto; flex-wrap: wrap; }
+    .pill {
+      background: rgba(8, 15, 26, 0.72); backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 999px;
+      padding: 5px 11px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .pill-btn { cursor: pointer; transition: transform 0.12s, border-color 0.2s; }
+    .pill-btn:active { transform: scale(0.94); }
+    .feed-pill { border-color: rgba(245, 158, 11, 0.45); }
+
+    /* Minimalist Bottom Floating Pill */
+    .dock-mini {
+      position: fixed; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%;
+      transform: translateX(-50%); z-index: 25;
+      background: rgba(8, 15, 26, 0.82); backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px;
+      padding: 5px 8px; display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      white-space: nowrap;
+    }
+    .btn-mini {
+      border: none; border-radius: 999px; padding: 6px 12px;
+      font-size: 11.5px; font-weight: 700; cursor: pointer; color: #fff;
+      display: flex; align-items: center; gap: 5px; transition: transform 0.1s;
+    }
+    .btn-mini:active { transform: scale(0.95); }
+    .btn-feed { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-breed-open { background: linear-gradient(135deg, #0284c7, #2563eb); }
+    .btn-shop-open { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
+
+    /* Expandable Drawer */
+    .drawer {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(105%);
+      width: min(560px, 96vw); max-height: 78vh; overflow-y: auto;
+      background: rgba(9, 16, 28, 0.94); backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.35); border-bottom: none;
+      border-radius: 20px 20px 0 0; padding: 14px 16px 18px;
+      z-index: 30; transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.75);
+    }
+    .drawer.open { transform: translateX(-50%) translateY(0); }
+    .drawer-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .close-btn {
+      background: rgba(255,255,255,0.1); border: none; color: #cbd5e1;
+      width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer;
+    }
+    .shop-sec-title {
+      font-size: 11.5px; font-weight: 800; color: #38bdf8;
+      margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .breed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .slot-box {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 8px;
+    }
+    .slot-box label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; font-weight: 700; }
+    select {
+      width: 100%; background: #0f172a; color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px;
+      padding: 6px 8px; font-size: 12px; outline: none;
+    }
+    .rates-box {
+      background: rgba(15, 23, 42, 0.8); border-radius: 10px; padding: 8px 10px;
+      font-size: 11.5px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);
+    }
+    .rate-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .btn-primary {
+      width: 100%; padding: 10px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      color: #fff; font-weight: 800; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Modal */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px;
+    }
+    .modal-bg.show { display: flex; }
+    .modal-card {
+      background: #0b1322; border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px; padding: 16px; width: min(360px, 92vw);
+    }
+    .toast {
+      position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.92); border: 1px solid #38bdf8;
+      padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<canvas id="tank"></canvas>
+
+<!-- Top Compact HUD -->
+<div class="hud-top">
+  <div class="hud-group">
+    <div class="pill">&#129689; <span id="coinVal">500</span></div>
+    <div class="pill pill-btn feed-pill" onclick="cycleActiveFeed()" id="feedPill" title="Tap untuk ganti pakan">
+      <span id="feedIcon">&#127844;</span> <span id="pelletVal">15</span> <span style="font-size:10px; opacity:0.75;">&#8644;</span>
+    </div>
+    <div class="pill">&#128031; <span id="fishCount">5</span>/18</div>
+  </div>
+  <div class="hud-group">
+    <div class="pill pill-btn" onclick="toggleAudio()" id="audioBtn">&#128266;</div>
+    <div class="pill pill-btn" onclick="openDex()">&#128214; <span id="dexCount">5</span>/<span id="dexTotal">24</span></div>
+  </div>
+</div>
+
+<!-- Minimalist Bottom Floating Pill -->
+<div class="dock-mini">
+  <button class="btn-mini btn-feed" onclick="dropFoodCluster()" id="dropClusterBtn">&#127844; Tebar 5</button>
+  <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">&#129516; Breeding</button>
+  <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">&#128722; Toko</button>
+</div>
+
+<!-- Breeding Drawer -->
+<div class="drawer" id="breedDrawer">
+  <div class="drawer-header">
+    <strong style="font-size:14px;">&#129516; Lab Kawin Silang & Mutasi</strong>
+    <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
+  </div>
+  <div class="breed-grid">
+    <div class="slot-box">
+      <label>&#9794; Induk Jantan (Dewasa)</label>
+      <select id="maleSelect" onchange="updateHatchPreview()"></select>
+    </div>
+    <div class="slot-box">
+      <label>&#9792; Induk Betina (Dewasa)</label>
+      <select id="femaleSelect" onchange="updateHatchPreview()"></select>
+    </div>
+  </div>
+  <div class="rates-box" id="hatchPreview">Pilih 2 induk dewasa untuk melihat peluang mutasi.</div>
+  <button class="btn-primary" id="startBreedBtn" onclick="startBreeding()">&#129370; START BREEDING (350 Koin)</button>
+</div>
+
+<!-- Shop Drawer -->
+<div class="drawer" id="shopDrawer">
+  <div class="drawer-header">
+    <strong style="font-size:14px;">&#128722; Toko Pakan & Bibit Ikan Hias</strong>
+    <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
+  </div>
+
+  <div class="shop-sec-title">&#127844; Stok Pakan & Booster Pertumbuhan</div>
+  <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom: 12px;"></div>
+
+  <div class="shop-sec-title" id="shopFishHeader">&#128031; Bibit Ikan Hias</div>
+  <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
+</div>
+
+<!-- Fish Inspector / Dex Modal -->
+<div class="modal-bg" id="infoModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card" id="modalBody"></div>
+</div>
+
+<!-- Offline Idle Reward Modal -->
+<div class="modal-bg" id="offlineModal" onclick="if(event.target===this) closeOfflineModal()">
+  <div class="modal-card" style="text-align: center; border-color: #10b981;">
+    <div style="font-size: 34px; margin-bottom: 6px;">&#128176;</div>
+    <strong style="font-size: 16px; color: #10b981; display: block; margin-bottom: 6px;">Selamat Datang Kembali!</strong>
+    <p id="offlineMsg" style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;"></p>
+    <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="closeOfflineModal()">Klaim Koin</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Force Update Modal -->
+<div class="modal-bg" id="updateModal" style="z-index: 9999; background: rgba(4, 8, 13, 0.92);">
+  <div class="modal-card" style="text-align: center; border-color: #f59e0b;">
+    <div style="font-size: 36px; margin-bottom: 6px;">&#128640;</div>
+    <strong style="font-size: 16px; color: #f59e0b; display: block; margin-bottom: 6px;">Update Tersedia!</strong>
+    <p style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;">
+      Versi terbaru <b id="newVerText">v1.0.x</b> sudah rilis! Kamu wajib update ke versi terbaru untuk melanjutkan bermain Aquatopia.
+    </p>
+    <a id="downloadApkBtn" href="#" target="_blank" style="display: block; text-decoration: none;">
+      <button class="btn-primary" style="width: 100%;">&#11015;&#65039; Download & Update Sekarang</button>
+    </a>
+  </div>
+</div>
+
+<!-- Auto-Generated Fish Manifest from GitHub Actions -->
+<script src="assets/fishes-auto.js"></script>
+
+<script>
+const DEFAULT_ASSET_PATHS = {
+  bg: 'assets/bg-aquascape.jpg',
+  oranda: 'assets/oranda.jpg',
+  betta: 'assets/betta.jpg',
+  guppy: 'assets/guppy.jpg',
+  manfish: 'assets/manfish.jpg',
+  arowana: 'assets/arowana.jpg',
+  neon: 'assets/neon.jpg',
+  discus: 'assets/discus.jpg',
+  koi: 'assets/koi.jpg'
+};
+
+const LEFT_FACING_KEYS = new Set(['neon', 'discus', 'koi']);
+
+const DEFAULT_SPECIES = {
+  neon: {
+    name: 'Neon Tetra', baseSize: 36, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
+    tiers: [
+      { id: 'neon_1', name: 'Black Neon Tetra', rarity: 'Common', hue: 190, sat: 0.45, val: 0.9, sell: 35 },
+      { id: 'neon_2', name: 'Cardinal Tetra', rarity: 'Rare', hue: -18, sat: 1.25, val: 1.05, sell: 110 },
+      { id: 'neon_3', name: 'Diamond Blue Neon', rarity: 'Epic', hue: 0, sat: 1.15, val: 1.08, sell: 280 }
+    ]
+  },
+  guppy: {
+    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60, fallbackColor: '#ef4444',
+    tiers: [
+      { id: 'guppy_1', name: 'Guppy Blue Grass', rarity: 'Common', hue: 145, sat: 0.85, val: 1.0, sell: 45 },
+      { id: 'guppy_2', name: 'Guppy Tuxedo Red', rarity: 'Rare', hue: -18, sat: 1.1, val: 1.0, sell: 130 },
+      { id: 'guppy_3', name: 'Fancy Dragon Platinum', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 350 }
+    ]
+  },
+  oranda: {
+    name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80, fallbackColor: '#f97316',
+    tiers: [
+      { id: 'oranda_1', name: 'Oranda Red Cap', rarity: 'Common', hue: -12, sat: 0.85, val: 1.05, sell: 60 },
+      { id: 'oranda_2', name: 'Oranda Tricolor', rarity: 'Rare', hue: 14, sat: 1.15, val: 1.0, sell: 160 },
+      { id: 'oranda_3', name: 'Oranda Calico Royal', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 420 }
+    ]
+  },
+  betta: {
+    name: 'Cupang Halfmoon', baseSize: 58, speed: 0.65, price: 90, fallbackColor: '#3b82f6',
+    tiers: [
+      { id: 'betta_1', name: 'Halfmoon Royal Blue', rarity: 'Common', hue: -25, sat: 0.9, val: 0.95, sell: 70 },
+      { id: 'betta_2', name: 'Halfmoon Bicolor', rarity: 'Rare', hue: 28, sat: 1.2, val: 1.05, sell: 180 },
+      { id: 'betta_3', name: 'Halfmoon Galaxy Neon', rarity: 'Epic', hue: 0, sat: 1.1, val: 1.05, sell: 460 }
+    ]
+  },
+  manfish: {
+    name: 'Manfish Angel', baseSize: 68, speed: 0.5, price: 110, fallbackColor: '#eab308',
+    tiers: [
+      { id: 'manfish_1', name: 'Manfish Silver Zebra', rarity: 'Common', hue: 0, sat: 0.15, val: 1.05, sell: 85 },
+      { id: 'manfish_2', name: 'Manfish Golden', rarity: 'Rare', hue: 18, sat: 1.25, val: 1.08, sell: 210 },
+      { id: 'manfish_3', name: 'Koi Marble Angel', rarity: 'Epic', hue: 0, sat: 1.05, val: 1.0, sell: 520 }
+    ]
+  },
+  discus: {
+    name: 'Discus Royal', baseSize: 66, speed: 0.42, price: 140, fallbackColor: '#fb7185',
+    tiers: [
+      { id: 'discus_1', name: 'Discus Pigeon Blood', rarity: 'Common', hue: 12, sat: 0.9, val: 1.02, sell: 110 },
+      { id: 'discus_2', name: 'Discus Turquoise', rarity: 'Rare', hue: 175, sat: 1.2, val: 1.0, sell: 270 },
+      { id: 'discus_3', name: 'Red Melon Royal', rarity: 'Epic', hue: 0, sat: 1.15, val: 1.05, sell: 650 }
+    ]
+  },
+  koi: {
+    name: 'Koi Kohaku', baseSize: 88, speed: 0.62, price: 190, fallbackColor: '#f43f5e',
+    tiers: [
+      { id: 'koi_1', name: 'Koi Bekko', rarity: 'Common', hue: 25, sat: 0.65, val: 1.02, sell: 145 },
+      { id: 'koi_2', name: 'Koi Sanke', rarity: 'Rare', hue: -8, sat: 1.15, val: 1.04, sell: 360 },
+      { id: 'koi_3', name: 'Tancho Kohaku', rarity: 'Epic', hue: 0, sat: 1.1, val: 1.05, sell: 900 }
+    ]
+  },
+  arowana: {
+    name: 'Arwana', baseSize: 105, speed: 0.72, price: 220, fallbackColor: '#dc2626',
+    tiers: [
+      { id: 'arowana_1', name: 'Arwana Silver', rarity: 'Common', hue: 0, sat: 0.12, val: 1.15, sell: 170 },
+      { id: 'arowana_2', name: 'Arwana Golden Crossback', rarity: 'Rare', hue: 36, sat: 1.35, val: 1.12, sell: 450 },
+      { id: 'arowana_3', name: 'Super Red Arwana', rarity: 'Epic', hue: 0, sat: 1.1, val: 1.02, sell: 1100 }
+    ]
+  }
+};
+
+const ASSET_PATHS = Object.assign({}, DEFAULT_ASSET_PATHS, window.AUTO_ASSET_PATHS || {});
+const SPECIES = Object.assign({}, DEFAULT_SPECIES, window.AUTO_SPECIES || {});
+
+const BREED_COST = 350;
+
+const FEED_TYPES = {
+  regular: { name: 'Pelet Biasa',   icon: '&#127844;', boost: 1, cooldownCut: 1, color: '#f59e0b' },
+  worm:    { name: 'Cacing Sutra',  icon: '&#129713;', boost: 3, cooldownCut: 3, color: '#ef4444' },
+  shrimp:  { name: 'Udang Kristal', icon: '&#129424;', boost: 8, cooldownCut: 8, color: '#c084fc' }
+};
+
+const PELLET_PACKS = [
+  { id: 'reg_10', feedType: 'regular', label: 'Pelet Kecil (10)',      count: 10, price: 300 },
+  { id: 'reg_20', feedType: 'regular', label: 'Pelet Sedang (20)',     count: 20, price: 600 },
+  { id: 'reg_30', feedType: 'regular', label: 'Pelet Besar (30)',      count: 30, price: 1000 },
+  { id: 'reg_50', feedType: 'regular', label: '1 Karung Pelet (50)',   count: 50, price: 1500 },
+  { id: 'wrm_10', feedType: 'worm',    label: 'Cacing Sutra (10)',     count: 10, price: 400 },
+  { id: 'wrm_25', feedType: 'worm',    label: 'Cacing Sutra (25)',     count: 25, price: 900 },
+  { id: 'shr_5',  feedType: 'shrimp',  label: 'Udang Kristal (5)',     count: 5,  price: 500 },
+  { id: 'shr_15', feedType: 'shrimp',  label: 'Udang Kristal (15)',    count: 15, price: 1500 }
+];
+
+const canvas = document.getElementById('tank');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+});
+
+// Sprite Loader & Background Remover (Otomatis hapus latar hitam & balik arah hadap kanan)
+const processedSprites = {};
+let bgImage = null;
+
+function prepareSpriteClean(img, speciesKey) {
+  const maxDim = 640;
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const octx = off.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(img, 0, 0, w, h);
+
+  const imgData = octx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  // Deteksi warna latar dari sudut
+  const cornerR = (data[0] + data[(w-1)*4] + data[((h-1)*w)*4] + data[((h-1)*w+(w-1))*4]) / 4;
+  const cornerG = (data[1] + data[(w-1)*4+1] + data[((h-1)*w)*4+1] + data[((h-1)*w+(w-1))*4+1]) / 4;
+  const cornerB = (data[2] + data[(w-1)*4+2] + data[((h-1)*w)*4+2] + data[((h-1)*w+(w-1))*4+2]) / 4;
+  const isDarkBg = (cornerR < 35 && cornerG < 35 && cornerB < 35);
+
+  if (isDarkBg) {
+    const visited = new Uint8Array(w * h);
+    const queue = new Int32Array(w * h);
+    let head = 0, tail = 0;
+
+    const pushQ = (x, y) => {
+      const p = y * w + x;
+      if (!visited[p]) { visited[p] = 1; queue[tail++] = p; }
+    };
+
+    for (let x = 0; x < w; x++) { pushQ(x, 0); pushQ(x, h-1); }
+    for (let y = 0; y < h; y++) { pushQ(0, y); pushQ(w-1, y); }
+
+    while (head < tail) {
+      const p = queue[head++];
+      const px = p % w, py = (p / w) | 0;
+      const idx = p * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+
+      if (r <= 32 && g <= 32 && b <= 32) {
+        data[idx + 3] = 0;
+        const neighbors = [
+          px > 0 ? p - 1 : -1,
+          px < w - 1 ? p + 1 : -1,
+          py > 0 ? p - w : -1,
+          py < h - 1 ? p + w : -1
+        ];
+        for (let i = 0; i < 4; i++) {
+          const np = neighbors[i];
+          if (np >= 0 && !visited[np]) {
+            visited[np] = 1;
+            queue[tail++] = np;
+          }
+        }
+      }
+    }
+  }
+
+  octx.putImageData(imgData, 0, 0);
+
+  let minX = w, maxX = 0, minY = h, maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (octx.getImageData(x, y, 1, 1).data[3] > 15) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  const cw = Math.max(1, maxX - minX + 1);
+  const ch = Math.max(1, maxY - minY + 1);
+  const cropped = document.createElement('canvas');
+  cropped.width = cw; cropped.height = ch;
+  const cctx = cropped.getContext('2d');
+
+  const isLeft = LEFT_FACING_KEYS.has(speciesKey);
+  if (isLeft) {
+    cctx.translate(cw, 0);
+    cctx.scale(-1, 1);
+  }
+  cctx.drawImage(off, minX, minY, cw, ch, 0, 0, cw, ch);
+  return cropped;
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function getTintedSprite(speciesKey, tierIndex) {
+  const cacheKey = `${speciesKey}_${tierIndex}`;
+  if (processedSprites[cacheKey]) return processedSprites[cacheKey];
+  const base = processedSprites[`${speciesKey}_base`];
+  if (!base) return null;
+
+  const tier = SPECIES[speciesKey].tiers[tierIndex];
+  if (!tier || (tier.hue === 0 && tier.sat === 1 && tier.val === 1)) {
+    processedSprites[cacheKey] = base;
+    return base;
+  }
+
+  const c = document.createElement('canvas');
+  c.width = base.width; c.height = base.height;
+  const cx = c.getContext('2d');
+  cx.drawImage(base, 0, 0);
+
+  const imgData = cx.getImageData(0, 0, c.width, c.height);
+  const d = imgData.data;
+  const hueShift = ((tier.hue % 360) + 360) % 360 / 360;
+
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3];
+    if (a < 15) continue;
+    let [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+    h = (h + hueShift) % 1;
+    s = Math.min(1, Math.max(0, s * tier.sat));
+    l = Math.min(1, Math.max(0, l * tier.val));
+    const [nr, ng, nb] = hslToRgb(h, s, l);
+    d[i] = nr;
+    d[i + 1] = ng;
+    d[i + 2] = nb;
+    d[i + 3] = a;
+  }
+
+  cx.putImageData(imgData, 0, 0);
+  processedSprites[cacheKey] = c;
+  return c;
+}
+
+// Force Update Checker via GitHub Releases
+const CURRENT_VERSION = "__APP_VERSION__";
+const GITHUB_REPO = "WFNMKBOT/aquabreed-hd";
+
+async function checkForceUpdate() {
+  if (!CURRENT_VERSION.startsWith("v")) return;
+  const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/latest`;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      cache: "no-store",
+      headers: { "Accept": "application/vnd.github+json" }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const latestTag = data.tag_name;
+
+    if (latestTag && latestTag !== CURRENT_VERSION) {
+      const apkAsset = data.assets?.find(a => a.name.endsWith(".apk"));
+      document.getElementById("newVerText").textContent = latestTag;
+      document.getElementById("downloadApkBtn").href = apkAsset ? apkAsset.browser_download_url : fallbackUrl;
+      document.getElementById("updateModal").classList.add("show");
+    }
+  } catch (e) {
+    console.log("Offline mode, skip update check.");
+  }
+}
+
+function loadAllAssets() {
+  const bg = new Image();
+  bg.src = ASSET_PATHS.bg;
+  bg.onload = () => { bgImage = bg; };
+
+  Object.keys(ASSET_PATHS).forEach(key => {
+    if (key === 'bg') return;
+    const src = ASSET_PATHS[key];
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      processedSprites[`${key}_base`] = prepareSpriteClean(img, key);
+    };
+  });
+}
+
+// Auto-Save System
+const SAVE_KEY = 'aquatopia_save_v1';
+
+function getDefaultState() {
+  return {
+    coins: 500,
+    pellets: { regular: 15, worm: 2, shrimp: 0 },
+    activeFeed: 'regular',
+    unlocked: ['oranda_3', 'arowana_3', 'betta_3', 'guppy_3', 'manfish_3'],
+    fishes: [
+      { id: 1, species: 'arowana', tier: 2, gender: 'M', growth: 100, x: W * 0.4, y: H * 0.35, vx: 0.7, vy: 0.05, phase: 0, dropTimer: 16, eatCooldown: 0 },
+      { id: 2, species: 'oranda', tier: 2, gender: 'F', growth: 100, x: W * 0.3, y: H * 0.55, vx: -0.5, vy: 0.04, phase: 1.5, dropTimer: 20, eatCooldown: 0 },
+      { id: 3, species: 'betta', tier: 2, gender: 'M', growth: 100, x: W * 0.6, y: H * 0.3, vx: 0.6, vy: -0.04, phase: 2.4, dropTimer: 24, eatCooldown: 0 },
+      { id: 4, species: 'guppy', tier: 2, gender: 'F', growth: 100, x: W * 0.5, y: H * 0.65, vx: -0.8, vy: 0.03, phase: 3.1, dropTimer: 18, eatCooldown: 0 },
+      { id: 5, species: 'manfish', tier: 2, gender: 'M', growth: 100, x: W * 0.7, y: H * 0.5, vx: -0.45, vy: -0.03, phase: 4.0, dropTimer: 22, eatCooldown: 0 }
+    ]
+  };
+}
+
+let state = getDefaultState();
+
+function saveGame() {
+  try {
+    const payload = {
+      coins: state.coins,
+      pellets: state.pellets,
+      activeFeed: state.activeFeed,
+      unlocked: state.unlocked,
+      fishes: state.fishes,
+      lastSaved: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn('Auto-save failed:', e);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      saveGame();
+      return;
+    }
+    const saved = JSON.parse(raw);
+    if (typeof saved.coins === 'number') state.coins = saved.coins;
+
+    if (typeof saved.pellets === 'number') {
+      state.pellets = { regular: saved.pellets, worm: 0, shrimp: 0 };
+    } else if (saved.pellets && typeof saved.pellets === 'object') {
+      state.pellets = {
+        regular: saved.pellets.regular ?? 0,
+        worm: saved.pellets.worm ?? 0,
+        shrimp: saved.pellets.shrimp ?? 0
+      };
+    }
+
+    if (saved.activeFeed && FEED_TYPES[saved.activeFeed]) {
+      state.activeFeed = saved.activeFeed;
+    }
+
+    if (Array.isArray(saved.unlocked)) state.unlocked = saved.unlocked;
+    if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
+      state.fishes = saved.fishes
+        .filter(f => SPECIES[f.species])
+        .map(f => ({
+          ...f,
+          growth: Math.round(f.growth ?? 0),
+          x: Math.min(Math.max(60, f.x || W * 0.5), W - 60),
+          y: Math.min(Math.max(60, f.y || H * 0.5), H - 60),
+          vx: f.vx || SPECIES[f.species]?.speed || 0.5,
+          vy: f.vy || 0,
+          phase: f.phase || Math.random() * 6,
+          dropTimer: typeof f.dropTimer === 'number' ? f.dropTimer : (16 + Math.random() * 12),
+          eatCooldown: typeof f.eatCooldown === 'number' ? f.eatCooldown : 0
+        }));
+    }
+
+    if (saved.lastSaved) {
+      const elapsedSecs = Math.max(0, Math.floor((Date.now() - saved.lastSaved) / 1000));
+      state.fishes.forEach(f => {
+        if (f.eatCooldown > 0) {
+          f.eatCooldown = Math.max(0, f.eatCooldown - elapsedSecs);
+        }
+      });
+
+      const elapsedMins = Math.floor(elapsedSecs / 60);
+      if (elapsedMins >= 2) {
+        const cappedMins = Math.min(elapsedMins, 480);
+        const earned = Math.floor(cappedMins / 2) * state.fishes.length;
+        if (earned > 0) {
+          state.coins += earned;
+          document.getElementById('offlineMsg').innerHTML =
+            `Ikanmu tetap berenang selama <b>${cappedMins} menit</b> saat kamu offline dan mengumpulkan <b>+${earned} Koin</b>!`;
+          document.getElementById('offlineModal').classList.add('show');
+        }
+      }
+    }
+    saveGame();
+  } catch (e) {
+    console.warn('Load save failed:', e);
+  }
+}
+
+function closeOfflineModal() {
+  document.getElementById('offlineModal').classList.remove('show');
+  saveGame();
+}
+
+setInterval(saveGame, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveGame();
+});
+window.addEventListener('beforeunload', saveGame);
+
+let pellets = [];
+let coinDrops = [];
+let floatingTexts = [];
+let bubbles = Array.from({ length: 24 }, () => ({
+  x: Math.random() * W, y: Math.random() * H,
+  r: 1.2 + Math.random() * 2.8, speed: 0.4 + Math.random() * 0.9
+}));
+
+// Web Audio
+let audioEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, dur = 0.12) {
+  if (!audioEnabled) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + dur);
+}
+function toggleAudio() {
+  audioEnabled = !audioEnabled;
+  document.getElementById('audioBtn').innerHTML = audioEnabled ? '&#128266;' : '&#128263;';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function spawnFloatingText(x, y, text, color = '#fbbf24') {
+  floatingTexts.push({ x, y, text, color, alpha: 1 });
+}
+
+function getFishDropValue(tier) {
+  if (tier === 2) return 18;
+  if (tier === 1) return 10;
+  return 5;
+}
+
+function cycleActiveFeed() {
+  const order = ['regular', 'worm', 'shrimp'];
+  const nextIdx = (order.indexOf(state.activeFeed) + 1) % order.length;
+  state.activeFeed = order[nextIdx];
+  updateHUD();
+  saveGame();
+  const fInfo = FEED_TYPES[state.activeFeed];
+  showToast(`Pakan aktif: ${fInfo.name} (+${fInfo.boost}% tumbuh)`);
+}
+
+function getTotalAllFeeds() {
+  return (state.pellets.regular || 0) + (state.pellets.worm || 0) + (state.pellets.shrimp || 0);
+}
+
+function getHungryFishCount() {
+  const hungry = state.fishes.filter(f => (f.eatCooldown || 0) <= 0).length;
+  return Math.max(0, hungry - pellets.length);
+}
+
+// Tank Tap Interaction
+canvas.addEventListener('pointerdown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const tx = e.clientX - rect.left;
+  const ty = e.clientY - rect.top;
+
+  for (let i = state.fishes.length - 1; i >= 0; i--) {
+    const f = state.fishes[i];
+    const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
+    if (Math.hypot(tx - f.x, ty - f.y) <= r) {
+      inspectFish(f);
+      return;
+    }
+  }
+
+  if (getHungryFishCount() <= 0) {
+    showToast('Semua ikan masih kenyang! Pakan dihemat.');
+    return;
+  }
+
+  const fType = state.activeFeed;
+  const fInfo = FEED_TYPES[fType];
+  const curStock = state.pellets[fType] || 0;
+
+  if (curStock > 0) {
+    state.pellets[fType] = curStock - 1;
+    updateHUD();
+    saveGame();
+    pellets.push({
+      x: tx, y: ty, vy: 0.65,
+      type: fType,
+      boost: fInfo.boost,
+      cooldownCut: fInfo.cooldownCut,
+      color: fInfo.color
+    });
+    spawnFloatingText(tx, ty - 8, `-1 ${fInfo.name}`, fInfo.color);
+    playTone(520, 0.08);
+  } else if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
+    pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
+    showToast('Stok habis! Menggunakan remah pakan darurat.');
+  } else {
+    showToast(`Stok ${fInfo.name} habis! Tap ikon pakan di atas atau beli di Toko.`);
+  }
+});
+
+// Button: Drop up to 5 Active Feeds
+function dropFoodCluster() {
+  const hungryAvail = getHungryFishCount();
+  if (hungryAvail <= 0) {
+    showToast('Semua ikan masih kenyang! Pakan dihemat.');
+    return;
+  }
+
+  const fType = state.activeFeed;
+  const fInfo = FEED_TYPES[fType];
+  const curStock = state.pellets[fType] || 0;
+
+  if (curStock <= 0) {
+    if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
+      for (let i = 0; i < Math.min(2, hungryAvail); i++) {
+        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
+      }
+      showToast('Remah pakan darurat ditebar!');
+      return;
+    }
+    openDrawer('shopDrawer');
+    return showToast(`Stok ${fInfo.name} habis! Silakan beli di Toko.`);
+  }
+
+  const toDrop = Math.min(5, curStock, hungryAvail);
+  state.pellets[fType] = curStock - toDrop;
+  updateHUD();
+  saveGame();
+
+  for (let i = 0; i < toDrop; i++) {
+    pellets.push({
+      x: W * (0.25 + Math.random() * 0.5),
+      y: 45 + Math.random() * 25,
+      vy: 0.55 + Math.random() * 0.3,
+      type: fType,
+      boost: fInfo.boost,
+      cooldownCut: fInfo.cooldownCut,
+      color: fInfo.color
+    });
+  }
+  spawnFloatingText(W * 0.5, H - 65, `-${toDrop} ${fInfo.name}`, fInfo.color);
+  playTone(620, 0.1);
+}
+
+// Draw Solid HD Fish (Semua base sprite menghadap ke KANAN)
+function drawFish(f, time) {
+  const sp = SPECIES[f.species];
+  const scaleFactor = 0.42 + (f.growth / 100) * 0.58;
+  const sprite = getTintedSprite(f.species, f.tier);
+
+  if (sprite) {
+    const targetW = sp.baseSize * 1.45 * scaleFactor;
+    const aspect = sprite.height / sprite.width;
+    const targetH = targetW * aspect;
+
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.translate(f.x, f.y);
+    if (f.vx < 0) ctx.scale(-1, 1);
+
+    const slices = 16;
+    const sw = sprite.width / slices;
+    const dw = targetW / slices;
+
+    for (let i = 0; i < slices; i++) {
+      const tailFactor = Math.pow(1 - i / slices, 1.6);
+      const waveY = Math.sin(time * 5.5 + f.phase - i * 0.4) * (4.5 * tailFactor * scaleFactor);
+      ctx.drawImage(
+        sprite,
+        i * sw, 0, sw + 0.6, sprite.height,
+        -targetW / 2 + i * dw, -targetH / 2 + waveY, dw + 0.6, targetH
+      );
+    }
+    ctx.restore();
+  } else {
+    const r = sp.baseSize * 0.45 * scaleFactor;
+    const wag = Math.sin(time * 7 + f.phase) * (r * 0.35);
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    if (f.vx < 0) ctx.scale(-1, 1);
+
+    ctx.fillStyle = sp.fallbackColor;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, 0);
+    ctx.lineTo(-r * 1.55, -r * 0.65 + wag);
+    ctx.lineTo(-r * 1.35, wag * 0.5);
+    ctx.lineTo(-r * 1.55, r * 0.65 + wag);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r, r * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(r * 0.52, -r * 0.12, r * 0.14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(r * 0.56, -r * 0.12, r * 0.07, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Draw 3D Metallic Gold Coin
+function drawGoldCoin(x, y, t) {
+  const spinScale = 0.75 + Math.abs(Math.cos(t * 4)) * 0.25;
+  const r = 11;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(spinScale, 1);
+
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 4;
+
+  const grad = ctx.createLinearGradient(-r, -r, r, r);
+  grad.addColorStop(0, '#fef08a');
+  grad.addColorStop(0.5, '#eab308');
+  grad.addColorStop(1, '#a16207');
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#fef9c3';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ca8a04';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#fef9c3';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', 0, 0.5);
+
+  ctx.restore();
+}
+
+// Main Loop
+let lastTime = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  const time = now / 1000;
+
+  if (bgImage) {
+    const imgRatio = bgImage.width / bgImage.height;
+    const winRatio = W / H;
+    let drawW = W, drawH = H, ox = 0, oy = 0;
+    if (winRatio > imgRatio) { drawH = W / imgRatio; oy = (H - drawH) / 2; }
+    else { drawW = H * imgRatio; ox = (W - drawW) / 2; }
+    ctx.drawImage(bgImage, ox, oy, drawW, drawH);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0a2538'); grad.addColorStop(1, '#040c14');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  const rayGrad = ctx.createLinearGradient(W * 0.5, 0, W * 0.4, H * 0.85);
+  rayGrad.addColorStop(0, 'rgba(125, 211, 252, 0.14)');
+  rayGrad.addColorStop(1, 'rgba(125, 211, 252, 0)');
+  ctx.fillStyle = rayGrad;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.35, 0); ctx.lineTo(W * 0.72, 0);
+  ctx.lineTo(W * 0.9, H); ctx.lineTo(W * 0.15, H);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Render Sinking Feed Items
+  for (let i = pellets.length - 1; i >= 0; i--) {
+    const p = pellets[i];
+    p.y += p.vy;
+    ctx.save();
+    ctx.fillStyle = p.color || '#f59e0b';
+    if (p.type === 'worm') {
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.sin(time * 8 + i) * 0.4);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 2.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.type === 'shrimp') {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f3e8ff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    if (p.y > H - 24) pellets.splice(i, 1);
+  }
+
+  // Fishes & Periodic Coin Drops from Adult Fish
+  state.fishes.forEach(f => {
+    const sp = SPECIES[f.species];
+    if (f.eatCooldown > 0) f.eatCooldown = Math.max(0, f.eatCooldown - dt);
+
+    if (f.growth >= 100) {
+      f.dropTimer = (f.dropTimer ?? 18) - dt;
+      if (f.dropTimer <= 0) {
+        f.dropTimer = 20 + Math.random() * 12;
+        const dropVal = getFishDropValue(f.tier);
+        coinDrops.push({
+          x: f.x,
+          y: f.y + 10,
+          val: dropVal,
+          delay: 0.6,
+          vy: -0.6
+        });
+      }
+    }
+
+    if (pellets.length > 0 && (f.eatCooldown || 0) <= 0) {
+      let nearest = pellets[0], bestD = Infinity;
+      pellets.forEach(p => {
+        const d = Math.hypot(p.x - f.x, p.y - f.y);
+        if (d < bestD) { bestD = d; nearest = p; }
+      });
+      if (bestD < 260) {
+        const ang = Math.atan2(nearest.y - f.y, nearest.x - f.x);
+        f.vx += Math.cos(ang) * 0.045;
+        f.vy += Math.sin(ang) * 0.045;
+        if (bestD < 22) {
+          pellets.splice(pellets.indexOf(nearest), 1);
+          f.eatCooldown = 600;
+          if (f.growth < 100) {
+            f.growth = Math.min(100, Math.round(f.growth + (nearest.boost || 1)));
+            showToast(`${sp.tiers[f.tier].name} tumbuh (${f.growth}%)!`);
+            saveGame();
+          } else {
+            f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 1));
+            spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
+          }
+          playTone(760, 0.09);
+        }
+      }
+    }
+
+    const spd = Math.hypot(f.vx, f.vy);
+    const maxSpd = sp.speed * 1.35;
+    if (spd > maxSpd) { f.vx = (f.vx / spd) * maxSpd; f.vy = (f.vy / spd) * maxSpd; }
+    if (Math.random() < 0.015) f.vy += (Math.random() - 0.5) * 0.25;
+
+    f.x += f.vx; f.y += f.vy;
+    const padX = 55, padTop = 55, padBot = 55;
+    if (f.x < padX) { f.x = padX; f.vx = Math.abs(f.vx); }
+    if (f.x > W - padX) { f.x = W - padX; f.vx = -Math.abs(f.vx); }
+    if (f.y < padTop) { f.y = padTop; f.vy = Math.abs(f.vy); }
+    if (f.y > H - padBot) { f.y = H - padBot; f.vy = -Math.abs(f.vy); }
+
+    drawFish(f, time);
+  });
+
+  // Auto-Magnet Coin Drops Flying to Top-Left HUD
+  const targetX = 45;
+  const targetY = 24;
+
+  for (let i = coinDrops.length - 1; i >= 0; i--) {
+    const c = coinDrops[i];
+
+    if (c.delay > 0) {
+      c.delay -= dt;
+      c.y += c.vy;
+      c.vy *= 0.94;
+    } else {
+      const dx = targetX - c.x;
+      const dy = targetY - c.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 24) {
+        state.coins += c.val;
+        updateHUD();
+        saveGame();
+        playTone(980, 0.12);
+        spawnFloatingText(targetX + 22, targetY + 18, `+${c.val}`, '#34d399');
+        coinDrops.splice(i, 1);
+        continue;
+      }
+
+      const ang = Math.atan2(dy, dx);
+      c.x += Math.cos(ang) * 9;
+      c.y += Math.sin(ang) * 9;
+    }
+
+    drawGoldCoin(c.x, c.y, time + i);
+  }
+
+  // Floating Texts
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y -= 0.7;
+    ft.alpha -= 0.018;
+    if (ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha = ft.alpha;
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  }
+
+  // Bubbles
+  ctx.strokeStyle = 'rgba(224, 242, 254, 0.45)';
+  ctx.lineWidth = 1;
+  bubbles.forEach(b => {
+    b.y -= b.speed;
+    b.x += Math.sin(time * 2 + b.y * 0.03) * 0.3;
+    if (b.y < -10) { b.y = H + 10; b.x = Math.random() * W; }
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+  });
+
+  requestAnimationFrame(loop);
+}
+
+// UI & Breeding
+function updateHUD() {
+  const curFeed = FEED_TYPES[state.activeFeed] || FEED_TYPES.regular;
+  const totalSpecies = Object.keys(SPECIES).length;
+  document.getElementById('coinVal').textContent = state.coins;
+  document.getElementById('feedIcon').innerHTML = curFeed.icon;
+  document.getElementById('pelletVal').textContent = state.pellets[state.activeFeed] ?? 0;
+  document.getElementById('dropClusterBtn').innerHTML = `${curFeed.icon} Tebar 5`;
+  document.getElementById('fishCount').textContent = state.fishes.length;
+  document.getElementById('dexCount').textContent = state.unlocked.length;
+  document.getElementById('dexTotal').textContent = totalSpecies * 3;
+  const shopHeader = document.getElementById('shopFishHeader');
+  if (shopHeader) shopHeader.innerHTML = `&#128031; Bibit Ikan Hias (${totalSpecies} Spesies)`;
+}
+
+function openDrawer(id) {
+  closeDrawers();
+  if (id === 'breedDrawer') populateBreedSelects();
+  if (id === 'shopDrawer') populateShop();
+  document.getElementById(id).classList.add('open');
+}
+function closeDrawers() {
+  document.querySelectorAll('.drawer').forEach(d => d.classList.remove('open'));
+}
+
+function populateBreedSelects() {
+  const mSel = document.getElementById('maleSelect');
+  const fSel = document.getElementById('femaleSelect');
+  const males = state.fishes.filter(f => f.gender === 'M' && f.growth >= 100);
+  const females = state.fishes.filter(f => f.gender === 'F' && f.growth >= 100);
+
+  mSel.innerHTML = males.length
+    ? males.map(f => `<option value="${f.id}">&#9794; ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
+    : '<option value="">Tidak ada jantan dewasa</option>';
+  fSel.innerHTML = females.length
+    ? females.map(f => `<option value="${f.id}">&#9792; ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
+    : '<option value="">Tidak ada betina dewasa</option>';
+  updateHatchPreview();
+}
+
+function updateHatchPreview() {
+  const mId = Number(document.getElementById('maleSelect').value);
+  const fId = Number(document.getElementById('femaleSelect').value);
+  const male = state.fishes.find(f => f.id === mId);
+  const female = state.fishes.find(f => f.id === fId);
+  const box = document.getElementById('hatchPreview');
+  const btn = document.getElementById('startBreedBtn');
+
+  if (!male || !female) {
+    box.innerHTML = 'Butuh 1 Jantan (&#9794;) dan 1 Betina (&#9792;) dewasa.';
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = state.coins < BREED_COST || state.fishes.length >= 18;
+  const spA = SPECIES[male.species];
+  const spB = SPECIES[female.species];
+  box.innerHTML = `
+    <div style="font-weight:700; color:#38bdf8; margin-bottom:4px;">Peluang Netas (Hatch Rates):</div>
+    <div class="rate-row"><span>Common (${spA.tiers[0].name} / ${spB.tiers[0].name})</span><b>55%</b></div>
+    <div class="rate-row" style="color:#60a5fa;"><span>Rare (${spA.tiers[1].name} / ${spB.tiers[1].name})</span><b>30%</b></div>
+    <div class="rate-row" style="color:#f59e0b;"><span>Epic Mutasi (${spA.tiers[2].name} / ${spB.tiers[2].name})</span><b>15%</b></div>
+  `;
+}
+
+function startBreeding() {
+  const mId = Number(document.getElementById('maleSelect').value);
+  const fId = Number(document.getElementById('femaleSelect').value);
+  const male = state.fishes.find(f => f.id === mId);
+  const female = state.fishes.find(f => f.id === fId);
+  if (!male || !female || state.coins < BREED_COST) return;
+
+  state.coins -= BREED_COST;
+  const chosenSp = Math.random() < 0.5 ? male.species : female.species;
+  const roll = Math.random();
+  const tier = roll < 0.55 ? 0 : (roll < 0.85 ? 1 : 2);
+  const gender = Math.random() < 0.5 ? 'M' : 'F';
+  const tierObj = SPECIES[chosenSp].tiers[tier];
+
+  state.fishes.push({
+    id: Date.now(), species: chosenSp, tier, gender, growth: 0,
+    x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0,
+    phase: Math.random() * 6, dropTimer: 18, eatCooldown: 0
+  });
+
+  let bonusMsg = '';
+  if (!state.unlocked.includes(tierObj.id)) {
+    state.unlocked.push(tierObj.id);
+    state.coins += 100;
+    bonusMsg = ' (+100 Koin Katalog Baru!)';
+  }
+  updateHUD();
+  saveGame();
+  closeDrawers();
+  playTone(880, 0.25);
+  showToast(`Menetas: ${tierObj.name} (${tierObj.rarity})${bonusMsg}`);
+}
+
+function populateShop() {
+  const pelletList = document.getElementById('pelletShopList');
+  pelletList.innerHTML = PELLET_PACKS.map(p => {
+    const fInfo = FEED_TYPES[p.feedType];
+    const borderCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.55)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
+    const bgCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.18)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
+    return `
+      <div style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:12px; padding:9px;">
+        <div style="font-weight:700; font-size:12px; color:#f8fafc;">${fInfo.icon} ${p.label}</div>
+        <div style="font-size:10.5px; color:#cbd5e1; margin:2px 0 7px;">Tumbuh <b>+${fInfo.boost}%</b> / suap</div>
+        <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyPelletPack('${p.id}')">&#129689; ${p.price.toLocaleString('id-ID')}</button>
+      </div>
+    `;
+  }).join('');
+
+  const list = document.getElementById('shopList');
+  list.innerHTML = Object.keys(SPECIES).map(k => {
+    const sp = SPECIES[k];
+    return `
+      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px;">
+        <div style="font-weight:700; font-size:12.5px;">${sp.name}</div>
+        <div style="font-size:11px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak &#9794;/&#9792;</div>
+        <button class="btn-mini btn-breed-open" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function buyPelletPack(packId) {
+  const pack = PELLET_PACKS.find(p => p.id === packId);
+  if (!pack) return;
+  if (state.coins < pack.price) return showToast(`Koin kurang! Butuh ${pack.price.toLocaleString('id-ID')} Koin.`);
+
+  state.coins -= pack.price;
+  state.pellets[pack.feedType] = (state.pellets[pack.feedType] || 0) + pack.count;
+  state.activeFeed = pack.feedType;
+  updateHUD();
+  saveGame();
+  playTone(720, 0.14);
+  showToast(`Beli ${pack.label} berhasil! Stok: ${state.pellets[pack.feedType]}`);
+}
+
+function buyFish(speciesKey) {
+  const sp = SPECIES[speciesKey];
+  if (state.coins < sp.price) return showToast('Koin kurang bro!');
+  if (state.fishes.length >= 18) return showToast('Akuarium penuh (maks 18)!');
+  state.coins -= sp.price;
+  const gender = Math.random() < 0.5 ? 'M' : 'F';
+  const tier = Math.random() < 0.75 ? 0 : 1;
+  const tierObj = sp.tiers[tier];
+  state.fishes.push({
+    id: Date.now(), species: speciesKey, tier, gender, growth: 0,
+    x: W * 0.5, y: H * 0.35, vx: sp.speed, vy: 0, phase: Math.random() * 6, dropTimer: 18, eatCooldown: 0
+  });
+  let bonusMsg = '';
+  if (!state.unlocked.includes(tierObj.id)) {
+    state.unlocked.push(tierObj.id);
+    state.coins += 100;
+    bonusMsg = ' (+100 Koin Katalog Baru!)';
+  }
+  updateHUD();
+  saveGame();
+  showToast(`Beli ${tierObj.name} (${gender === 'M' ? 'Jantan' : 'Betina'})${bonusMsg}`);
+}
+
+function inspectFish(f) {
+  const sp = SPECIES[f.species];
+  const t = sp.tiers[f.tier];
+  const dropVal = getFishDropValue(f.tier);
+  const cdMin = Math.ceil((f.eatCooldown || 0) / 60);
+  const statusMakan = (f.eatCooldown || 0) > 0 ? `Kenyang (${cdMin} mnt lagi)` : 'Lapar (Siap Makan)';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong style="font-size:15px;">${t.name}</strong>
+      <button class="close-btn" onclick="closeModal()">&#10005;</button>
+    </div>
+    <div style="font-size:12px; color:#cbd5e1; line-height:1.7; margin-bottom:12px;">
+      <div>Kelamin: <b>${f.gender === 'M' ? '&#9794; Jantan' : '&#9792; Betina'}</b></div>
+      <div>Rarity: <b style="color:#f59e0b;">${t.rarity}</b></div>
+      <div>Pertumbuhan: <b>${Math.round(f.growth)}% ${f.growth >= 100 ? '(Siap Kawin & Drop +' + dropVal + ' Koin)' : '(Anakan)'}</b></div>
+      <div>Status: <b style="color:${(f.eatCooldown || 0) > 0 ? '#38bdf8' : '#34d399'};">${statusMakan}</b></div>
+    </div>
+    <button class="btn-primary" style="background:#ef4444;" onclick="sellFish(${f.id})">&#128176; Jual Ikan (+${t.sell} Koin)</button>
+  `;
+  document.getElementById('infoModal').classList.add('show');
+}
+
+function sellFish(id) {
+  if (state.fishes.length <= 2) return showToast('Sisakan minimal 2 ikan di akuarium!');
+  const idx = state.fishes.findIndex(f => f.id === id);
+  if (idx >= 0) {
+    const f = state.fishes[idx];
+    const sellVal = SPECIES[f.species].tiers[f.tier].sell;
+    state.coins += sellVal;
+    state.fishes.splice(idx, 1);
+    updateHUD();
+    saveGame();
+    closeModal();
+    showToast(`Terjual +${sellVal} Koin!`);
+  }
+}
+
+function openDex() {
+  const totalVariants = Object.keys(SPECIES).length * 3;
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <strong>&#128214; Katalog Mutasi (${state.unlocked.length}/${totalVariants})</strong>
+    <button class="close-btn" onclick="closeModal()">&#10005;</button>
+  </div><div style="max-height:55vh; overflow-y:auto; font-size:12px;">`;
+  Object.values(SPECIES).forEach(sp => {
+    sp.tiers.forEach(t => {
+      const ok = state.unlocked.includes(t.id);
+      html += `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between;">
+        <span>${ok ? '&#9989; ' + t.name : '&#128274; ???'}</span>
+        <span style="color:#94a3b8;">${t.rarity}</span>
+      </div>`;
+    });
+  });
+  html += `</div>`;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('infoModal').classList.remove('show'); }
+
+checkForceUpdate();
+loadAllAssets();
+loadGame();
+updateHUD();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
