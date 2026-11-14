@@ -1037,7 +1037,7 @@ function startBreeding() {
   const tierObj = SPECIES[chosenSp].tiers[tier];
 
   state.fishes.push({
-    id: Date.now(), species: chosenSp, tier, gender, growth: 40,
+    id: Date.now(), species: chosenSp, tier, gender, growth: 0,
     x: W * 0.5, y: H * 0.5, vx: (Math.random() < 0.5 ? -1 : 1) * SPECIES[chosenSp].speed, vy: 0,
     phase: Math.random() * 6, dropTimer: 18
   });
