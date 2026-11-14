@@ -125,50 +125,50 @@
 <div class="hud-top">
   <div class="hud-group">
     <div class="pill">
-      <span>🐠 AQUATOPIA</span>
+      <span>&#128032; AQUATOPIA</span>
       <span class="badge-ver">__APP_VERSION__</span>
     </div>
-    <div class="pill">🪙 <span id="coinVal">300</span></div>
-    <div class="pill">🐟 <span id="fishCount">5</span>/18</div>
+    <div class="pill">&#129689; <span id="coinVal">300</span></div>
+    <div class="pill">&#128031; <span id="fishCount">5</span>/18</div>
   </div>
   <div class="hud-group">
-    <div class="pill pill-btn" onclick="toggleAudio()" id="audioBtn">🔊</div>
-    <div class="pill pill-btn" onclick="openDex()">📖 <span id="dexCount">5</span>/15</div>
+    <div class="pill pill-btn" onclick="toggleAudio()" id="audioBtn">&#128266;</div>
+    <div class="pill pill-btn" onclick="openDex()">&#128214; <span id="dexCount">5</span>/15</div>
   </div>
 </div>
 
 <!-- Minimalist Bottom Floating Pill -->
 <div class="dock-mini">
-  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">🍤 Pakan</button>
-  <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">🧬 Breeding</button>
-  <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">🛒 Toko</button>
+  <button class="btn-mini btn-feed" onclick="dropFoodCluster()">&#127844; Pakan</button>
+  <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">&#129516; Breeding</button>
+  <button class="btn-mini btn-shop-open" onclick="openDrawer('shopDrawer')">&#128722; Toko</button>
 </div>
 
 <!-- Breeding Drawer -->
 <div class="drawer" id="breedDrawer">
   <div class="drawer-header">
-    <strong style="font-size:14px;">🧬 Lab Kawin Silang & Mutasi</strong>
-    <button class="close-btn" onclick="closeDrawers()">✕</button>
+    <strong style="font-size:14px;">&#129516; Lab Kawin Silang & Mutasi</strong>
+    <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
   </div>
   <div class="breed-grid">
     <div class="slot-box">
-      <label>♂ Induk Jantan (Dewasa)</label>
+      <label>&#9794; Induk Jantan (Dewasa)</label>
       <select id="maleSelect" onchange="updateHatchPreview()"></select>
     </div>
     <div class="slot-box">
-      <label>♀ Induk Betina (Dewasa)</label>
+      <label>&#9792; Induk Betina (Dewasa)</label>
       <select id="femaleSelect" onchange="updateHatchPreview()"></select>
     </div>
   </div>
   <div class="rates-box" id="hatchPreview">Pilih 2 induk dewasa untuk melihat peluang mutasi.</div>
-  <button class="btn-primary" id="startBreedBtn" onclick="startBreeding()">🥚 START BREEDING (50 Koin)</button>
+  <button class="btn-primary" id="startBreedBtn" onclick="startBreeding()">&#129370; START BREEDING (50 Koin)</button>
 </div>
 
 <!-- Shop Drawer -->
 <div class="drawer" id="shopDrawer">
   <div class="drawer-header">
-    <strong style="font-size:14px;">🛒 Toko Bibit Ikan Hias</strong>
-    <button class="close-btn" onclick="closeDrawers()">✕</button>
+    <strong style="font-size:14px;">&#128722; Toko Bibit Ikan Hias</strong>
+    <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
   </div>
   <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
 </div>
@@ -179,6 +179,20 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Force Update Modal -->
+<div class="modal-bg" id="updateModal" style="z-index: 9999; background: rgba(4, 8, 13, 0.92);">
+  <div class="modal-card" style="text-align: center; border-color: #f59e0b;">
+    <div style="font-size: 36px; margin-bottom: 6px;">&#128640;</div>
+    <strong style="font-size: 16px; color: #f59e0b; display: block; margin-bottom: 6px;">Update Tersedia!</strong>
+    <p style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;">
+      Versi terbaru <b id="newVerText">v1.0.x</b> sudah rilis! Kamu wajib update ke versi terbaru untuk melanjutkan bermain Aquatopia.
+    </p>
+    <a id="downloadApkBtn" href="#" target="_blank" style="display: block; text-decoration: none;">
+      <button class="btn-primary" style="width: 100%;">&#11015;&#65039; Download & Update Sekarang</button>
+    </a>
+  </div>
+</div>
 
 <script>
 const ASSET_PATHS = {
@@ -335,6 +349,30 @@ function getTintedSprite(speciesKey, tierIndex) {
   return c;
 }
 
+// Force Update Checker via GitHub Releases
+const CURRENT_VERSION = "__APP_VERSION__";
+const GITHUB_REPO = "WFNMKBOT/aquabreed-hd";
+
+async function checkForceUpdate() {
+  if (!CURRENT_VERSION.startsWith("v")) return;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const latestTag = data.tag_name;
+
+    if (latestTag && latestTag !== CURRENT_VERSION) {
+      const apkAsset = data.assets?.find(a => a.name.endsWith(".apk"));
+      const downloadUrl = apkAsset ? apkAsset.browser_download_url : data.html_url;
+      document.getElementById("newVerText").textContent = latestTag;
+      document.getElementById("downloadApkBtn").href = downloadUrl;
+      document.getElementById("updateModal").classList.add("show");
+    }
+  } catch (e) {
+    console.log("Offline mode, skip update check.");
+  }
+}
+
 function loadAllAssets() {
   const bg = new Image();
   bg.src = ASSET_PATHS.bg;
@@ -389,7 +427,7 @@ function playTone(freq, dur = 0.12) {
 }
 function toggleAudio() {
   audioEnabled = !audioEnabled;
-  document.getElementById('audioBtn').textContent = audioEnabled ? '🔊' : '🔇';
+  document.getElementById('audioBtn').innerHTML = audioEnabled ? '&#128266;' : '&#128263;';
 }
 
 function showToast(msg) {
@@ -430,7 +468,7 @@ function dropFoodCluster() {
   showToast('Pelet ditebar! Ikan otomatis makan & tumbuh.');
 }
 
-// Draw Solid Fish (or Fallback Vector Fish if assets/ folder isn't found)
+// Draw Solid Fish (or Fallback Vector Fish)
 function drawFish(f, time) {
   const sp = SPECIES[f.species];
   const scaleFactor = 0.42 + (f.growth / 100) * 0.58;
@@ -601,10 +639,10 @@ function populateBreedSelects() {
   const females = state.fishes.filter(f => f.gender === 'F' && f.growth >= 100);
 
   mSel.innerHTML = males.length
-    ? males.map(f => `<option value="${f.id}">♂ ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
+    ? males.map(f => `<option value="${f.id}">&#9794; ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
     : '<option value="">Tidak ada jantan dewasa</option>';
   fSel.innerHTML = females.length
-    ? females.map(f => `<option value="${f.id}">♀ ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
+    ? females.map(f => `<option value="${f.id}">&#9792; ${SPECIES[f.species].tiers[f.tier].name}</option>`).join('')
     : '<option value="">Tidak ada betina dewasa</option>';
   updateHatchPreview();
 }
@@ -618,7 +656,7 @@ function updateHatchPreview() {
   const btn = document.getElementById('startBreedBtn');
 
   if (!male || !female) {
-    box.innerHTML = 'Butuh 1 Jantan (♂) dan 1 Betina (♀) dewasa.';
+    box.innerHTML = 'Butuh 1 Jantan (&#9794;) dan 1 Betina (&#9792;) dewasa.';
     btn.disabled = true;
     return;
   }
@@ -656,7 +694,7 @@ function startBreeding() {
   updateHUD();
   closeDrawers();
   playTone(880, 0.25);
-  showToast(`🎉 Menetas: ${tierObj.name} (${tierObj.rarity})!`);
+  showToast(`Menetas: ${tierObj.name} (${tierObj.rarity})!`);
 }
 
 function populateShop() {
@@ -666,8 +704,8 @@ function populateShop() {
     return `
       <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px;">
         <div style="font-weight:700; font-size:12.5px;">${sp.name}</div>
-        <div style="font-size:11px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak ♂/♀</div>
-        <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">🪙 ${sp.price}</button>
+        <div style="font-size:11px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak &#9794;/&#9792;</div>
+        <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
       </div>
     `;
   }).join('');
@@ -687,7 +725,7 @@ function buyFish(speciesKey) {
   });
   if (!state.unlocked.includes(tierObj.id)) state.unlocked.push(tierObj.id);
   updateHUD();
-  showToast(`Beli ${tierObj.name} (${gender === 'M' ? '♂' : '♀'}) berhasil!`);
+  showToast(`Beli ${tierObj.name} (${gender === 'M' ? 'Jantan' : 'Betina'}) berhasil!`);
 }
 
 function inspectFish(f) {
@@ -696,14 +734,14 @@ function inspectFish(f) {
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong style="font-size:15px;">${t.name}</strong>
-      <button class="close-btn" onclick="closeModal()">✕</button>
+      <button class="close-btn" onclick="closeModal()">&#10005;</button>
     </div>
     <div style="font-size:12px; color:#cbd5e1; line-height:1.7; margin-bottom:12px;">
-      <div>Kelamin: <b>${f.gender === 'M' ? '♂ Jantan' : '♀ Betina'}</b></div>
+      <div>Kelamin: <b>${f.gender === 'M' ? '&#9794; Jantan' : '&#9792; Betina'}</b></div>
       <div>Rarity: <b style="color:#f59e0b;">${t.rarity}</b></div>
       <div>Pertumbuhan: <b>${f.growth}% ${f.growth >= 100 ? '(Siap Kawin)' : '(Anakan)'}</b></div>
     </div>
-    <button class="btn-primary" style="background:#ef4444;" onclick="sellFish(${f.id})">💰 Jual Ikan (+${t.sell} Koin)</button>
+    <button class="btn-primary" style="background:#ef4444;" onclick="sellFish(${f.id})">&#128176; Jual Ikan (+${t.sell} Koin)</button>
   `;
   document.getElementById('infoModal').classList.add('show');
 }
@@ -724,14 +762,14 @@ function sellFish(id) {
 
 function openDex() {
   let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <strong>📖 Katalog Mutasi (${state.unlocked.length}/15)</strong>
-    <button class="close-btn" onclick="closeModal()">✕</button>
+    <strong>&#128214; Katalog Mutasi (${state.unlocked.length}/15)</strong>
+    <button class="close-btn" onclick="closeModal()">&#10005;</button>
   </div><div style="max-height:55vh; overflow-y:auto; font-size:12px;">`;
   Object.values(SPECIES).forEach(sp => {
     sp.tiers.forEach(t => {
       const ok = state.unlocked.includes(t.id);
       html += `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between;">
-        <span>${ok ? '✅ ' + t.name : '🔒 ???'}</span>
+        <span>${ok ? '&#9989; ' + t.name : '&#128274; ???'}</span>
         <span style="color:#94a3b8;">${t.rarity}</span>
       </div>`;
     });
@@ -743,6 +781,7 @@ function openDex() {
 
 function closeModal() { document.getElementById('infoModal').classList.remove('show'); }
 
+checkForceUpdate();
 loadAllAssets();
 updateHUD();
 requestAnimationFrame(loop);
