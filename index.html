@@ -598,6 +598,11 @@ function getTotalAllFeeds() {
   return (state.pellets.regular || 0) + (state.pellets.worm || 0) + (state.pellets.shrimp || 0);
 }
 
+function getHungryFishCount() {
+  const hungry = state.fishes.filter(f => (f.eatCooldown || 0) <= 0).length;
+  return Math.max(0, hungry - pellets.length);
+}
+
 // Tank Tap Interaction
 canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -611,6 +616,12 @@ canvas.addEventListener('pointerdown', (e) => {
       inspectFish(f);
       return;
     }
+  }
+
+  // Cegah pakan keluar jika semua ikan masih kenyang
+  if (getHungryFishCount() <= 0) {
+    showToast('Semua ikan masih kenyang! Pakan dihemat.');
+    return;
   }
 
   const fType = state.activeFeed;
@@ -638,15 +649,21 @@ canvas.addEventListener('pointerdown', (e) => {
   }
 });
 
-// Button: Drop up to 5 Active Feeds from inventory
+// Button: Drop up to 5 Active Feeds (sesuai jumlah ikan yang lapar)
 function dropFoodCluster() {
+  const hungryAvail = getHungryFishCount();
+  if (hungryAvail <= 0) {
+    showToast('Semua ikan masih kenyang! Pakan dihemat.');
+    return;
+  }
+
   const fType = state.activeFeed;
   const fInfo = FEED_TYPES[fType];
   const curStock = state.pellets[fType] || 0;
 
   if (curStock <= 0) {
     if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < Math.min(2, hungryAvail); i++) {
         pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
       }
       showToast('Remah pakan darurat ditebar!');
@@ -656,7 +673,8 @@ function dropFoodCluster() {
     return showToast(`Stok ${fInfo.name} habis! Silakan beli di Toko.`);
   }
 
-  const toDrop = Math.min(5, curStock);
+  // Otomatis menyesuaikan jumlah tebar dengan jumlah ikan yang benar-benar lapar (maks 5)
+  const toDrop = Math.min(5, curStock, hungryAvail);
   state.pellets[fType] = curStock - toDrop;
   updateHUD();
   saveGame();
