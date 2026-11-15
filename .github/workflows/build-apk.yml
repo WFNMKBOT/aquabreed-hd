@@ -100,10 +100,13 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease
 
-      - name: Prepare APK Output
+      - name: Sign & Prepare APK Output
         run: |
           mkdir -p build-output
-          cp android/app/build/outputs/apk/release/app-release.apk build-output/Aquatopia.apk
+          APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          keytool -genkey -v -keystore release.keystore -alias aquatopia -keyalg RSA -keysize 2048 -validity 10000 -storepass android123 -keypass android123 -dname "CN=Aquatopia, OU=Game, O=WFN, L=Tangerang, S=Banten, C=ID"
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -V | tail -n 1)
+          $APKSIGNER sign --ks release.keystore --ks-pass pass:android123 --out build-output/Aquatopia.apk "$APK_FILE"
 
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
