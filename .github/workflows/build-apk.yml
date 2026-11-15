@@ -90,21 +90,50 @@ jobs:
           print("Auto-scan aset sukses!")
           EOF
 
-      - name: Add, Configure Orientation & Sync Capacitor Android
+      - name: Add, Configure Orientation, Fullscreen & Sync Capacitor Android
         run: |
           npm install @capacitor/android
           npx cap add android || true
           python3 - << 'EOF'
+          import re, glob
+
+          # 1. Buka kunci orientasi (Vertikal & Horizontal)
           manifest_path = "android/app/src/main/AndroidManifest.xml"
           with open(manifest_path, "r") as f:
               content = f.read()
           if "android:screenOrientation" in content:
-              import re
               content = re.sub(r'android:screenOrientation="[^"]*"', 'android:screenOrientation="fullSensor"', content)
           else:
               content = content.replace('<activity', '<activity android:screenOrientation="fullSensor"', 1)
           with open(manifest_path, "w") as f:
               f.write(content)
+
+          # 2. Paksa True Fullscreen (hilangkan bar hitam atas & samping) di MainActivity
+          for act_file in glob.glob("android/app/src/main/java/**/MainActivity.*", recursive=True):
+              with open(act_file, "r") as f:
+                  code = f.read()
+              if "SYSTEM_UI_FLAG_IMMERSIVE_STICKY" not in code:
+                  if act_file.endswith(".java"):
+                      code = code.replace("import com.getcapacitor.BridgeActivity;",
+                          "import android.os.Bundle;\nimport android.view.View;\nimport android.view.WindowManager;\nimport com.getcapacitor.BridgeActivity;")
+                      code = code.replace("public class MainActivity extends BridgeActivity {}",
+                          """public class MainActivity extends BridgeActivity {
+                            @Override
+                            public void onCreate(Bundle savedInstanceState) {
+                              super.onCreate(savedInstanceState);
+                              getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+                              getWindow().getDecorView().setSystemUiVisibility(
+                                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                                View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                              );
+                            }
+                          }""")
+                  with open(act_file, "w") as f:
+                      f.write(code)
           EOF
           npx cap sync android
 
