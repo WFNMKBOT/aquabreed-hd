@@ -7,114 +7,139 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     html, body {
-      width: 100vw; height: 100vh; overflow: hidden;
+      width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
       background: #04080d; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       color: #f1f5f9;
     }
-    canvas { display: block; width: 100vw; height: 100vh; }
+    canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
 
-    /* Top HUD */
+    /* Top HUD - Diperbesar & Responsif */
     .hud-top {
-      position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
-      display: flex; justify-content: space-between; align-items: center;
-      pointer-events: none; z-index: 20; gap: 8px;
+      position: fixed; top: max(12px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
+      right: max(14px, env(safe-area-inset-right));
+      display: flex; justify-content: space-between; align-items: flex-start;
+      pointer-events: none; z-index: 20; gap: 10px;
     }
-    .hud-group { display: flex; align-items: center; gap: 6px; pointer-events: auto; flex-wrap: wrap; }
+    .hud-group { display: flex; align-items: center; gap: 8px; pointer-events: auto; flex-wrap: wrap; }
     .pill {
-      background: rgba(8, 15, 26, 0.72); backdrop-filter: blur(10px);
-      border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 999px;
-      padding: 5px 11px; font-size: 12px; font-weight: 600;
-      display: flex; align-items: center; gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      background: rgba(8, 15, 26, 0.78); backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(56, 189, 248, 0.32); border-radius: 999px;
+      padding: 8px 15px; font-size: clamp(13.5px, 1.9vw, 16px); font-weight: 700;
+      display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
     }
     .pill-btn { cursor: pointer; transition: transform 0.12s, border-color 0.2s; }
     .pill-btn:active { transform: scale(0.94); }
-    .feed-pill { border-color: rgba(245, 158, 11, 0.45); }
+    .feed-pill { border-color: rgba(245, 158, 11, 0.55); }
 
-    /* Minimalist Bottom Floating Pill */
+    /* Bottom Floating Dock - Lebih Besar & Nyaman Disentuh */
     .dock-mini {
-      position: fixed; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%;
+      position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%;
       transform: translateX(-50%); z-index: 25;
-      background: rgba(8, 15, 26, 0.82); backdrop-filter: blur(12px);
-      border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px;
-      padding: 5px 8px; display: flex; align-items: center; gap: 6px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      background: rgba(8, 15, 26, 0.86); backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 999px;
+      padding: 7px 11px; display: flex; align-items: center; gap: 9px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.65);
       white-space: nowrap;
+      max-width: 95vw;
     }
     .btn-mini {
-      border: none; border-radius: 999px; padding: 6px 12px;
-      font-size: 11.5px; font-weight: 700; cursor: pointer; color: #fff;
-      display: flex; align-items: center; gap: 5px; transition: transform 0.1s;
+      border: none; border-radius: 999px; padding: 10px 18px;
+      font-size: clamp(13.5px, 1.9vw, 16px); font-weight: 800; cursor: pointer; color: #fff;
+      display: flex; align-items: center; gap: 6px; transition: transform 0.1s;
     }
     .btn-mini:active { transform: scale(0.95); }
     .btn-feed { background: linear-gradient(135deg, #10b981, #059669); }
     .btn-breed-open { background: linear-gradient(135deg, #0284c7, #2563eb); }
-    .btn-shop-open { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
+    .btn-shop-open { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22); }
+
+    /* Penyesuaian Layar Vertikal (Portrait) */
+    @media (orientation: portrait) {
+      .hud-top {
+        top: max(18px, env(safe-area-inset-top));
+      }
+      .pill {
+        padding: 9px 14px;
+        font-size: 14px;
+      }
+      .dock-mini {
+        bottom: max(22px, env(safe-area-inset-bottom));
+        padding: 8px 10px;
+        gap: 7px;
+      }
+      .btn-mini {
+        padding: 11px 15px;
+        font-size: 14px;
+      }
+    }
 
     /* Expandable Drawer */
     .drawer {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(105%);
-      width: min(560px, 96vw); max-height: 78vh; overflow-y: auto;
-      background: rgba(9, 16, 28, 0.94); backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.35); border-bottom: none;
-      border-radius: 20px 20px 0 0; padding: 14px 16px 18px;
+      width: min(600px, 96vw); max-height: 82vh; overflow-y: auto;
+      background: rgba(9, 16, 28, 0.96); backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(56, 189, 248, 0.4); border-bottom: none;
+      border-radius: 22px 22px 0 0; padding: 18px 18px max(22px, env(safe-area-inset-bottom));
       z-index: 30; transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.75);
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
     }
     .drawer.open { transform: translateX(-50%) translateY(0); }
     .drawer-header {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.12);
+      font-size: 16px;
     }
     .close-btn {
-      background: rgba(255,255,255,0.1); border: none; color: #cbd5e1;
-      width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer;
+      background: rgba(255,255,255,0.12); border: none; color: #cbd5e1;
+      width: 34px; height: 34px; border-radius: 50%; font-weight: bold; font-size: 15px; cursor: pointer;
     }
     .shop-sec-title {
-      font-size: 11.5px; font-weight: 800; color: #38bdf8;
-      margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 0.5px;
+      font-size: 13px; font-weight: 800; color: #38bdf8;
+      margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .breed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .breed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    @media (max-width: 420px) {
+      .breed-grid { grid-template-columns: 1fr; }
+    }
     .slot-box {
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px; padding: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px; padding: 10px;
     }
-    .slot-box label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; font-weight: 700; }
+    .slot-box label { display: block; font-size: 12.5px; color: #94a3b8; margin-bottom: 6px; font-weight: 700; }
     select {
       width: 100%; background: #0f172a; color: #f8fafc;
-      border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px;
-      padding: 6px 8px; font-size: 12px; outline: none;
+      border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px;
+      padding: 8px 10px; font-size: 14px; outline: none;
     }
     .rates-box {
-      background: rgba(15, 23, 42, 0.8); border-radius: 10px; padding: 8px 10px;
-      font-size: 11.5px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(15, 23, 42, 0.85); border-radius: 12px; padding: 10px 12px;
+      font-size: 13px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1);
     }
-    .rate-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .rate-row { display: flex; justify-content: space-between; padding: 3px 0; }
     .btn-primary {
-      width: 100%; padding: 10px; border: none; border-radius: 12px;
+      width: 100%; padding: 12px; border: none; border-radius: 14px;
       background: linear-gradient(135deg, #f59e0b, #ea580c);
-      color: #fff; font-weight: 800; font-size: 13px; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+      color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
     }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Modal */
     .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.68); backdrop-filter: blur(5px);
       display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px;
     }
     .modal-bg.show { display: flex; }
     .modal-card {
-      background: #0b1322; border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 16px; padding: 16px; width: min(360px, 92vw);
+      background: #0b1322; border: 1.5px solid rgba(56, 189, 248, 0.4);
+      border-radius: 18px; padding: 18px; width: min(400px, 92vw);
     }
     .toast {
-      position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.92); border: 1px solid #38bdf8;
-      padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      position: fixed; top: 68px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.94); border: 1.5px solid #38bdf8;
+      padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
       z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.25s;
-      white-space: nowrap;
+      white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
     }
     .toast.show { opacity: 1; }
   </style>
@@ -128,7 +153,7 @@
   <div class="hud-group">
     <div class="pill">&#129689; <span id="coinVal">500</span></div>
     <div class="pill pill-btn feed-pill" onclick="cycleActiveFeed()" id="feedPill" title="Tap untuk ganti pakan">
-      <span id="feedIcon">&#127844;</span> <span id="pelletVal">15</span> <span style="font-size:10px; opacity:0.75;">&#8644;</span>
+      <span id="feedIcon">&#127844;</span> <span id="pelletVal">15</span> <span style="font-size:11px; opacity:0.75;">&#8644;</span>
     </div>
     <div class="pill">&#128031; <span id="fishCount">5</span>/18</div>
   </div>
@@ -138,7 +163,7 @@
   </div>
 </div>
 
-<!-- Minimalist Bottom Floating Pill -->
+<!-- Bottom Floating Pill -->
 <div class="dock-mini">
   <button class="btn-mini btn-feed" onclick="dropFoodCluster()" id="dropClusterBtn">&#127844; Tebar 5</button>
   <button class="btn-mini btn-breed-open" onclick="openDrawer('breedDrawer')">&#129516; Breeding</button>
@@ -148,7 +173,7 @@
 <!-- Breeding Drawer -->
 <div class="drawer" id="breedDrawer">
   <div class="drawer-header">
-    <strong style="font-size:14px;">&#129516; Lab Kawin Silang & Mutasi</strong>
+    <strong>&#129516; Lab Kawin Silang & Mutasi</strong>
     <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
   </div>
   <div class="breed-grid">
@@ -168,15 +193,15 @@
 <!-- Shop Drawer -->
 <div class="drawer" id="shopDrawer">
   <div class="drawer-header">
-    <strong style="font-size:14px;">&#128722; Toko Pakan & Bibit Ikan Hias</strong>
+    <strong>&#128722; Toko Pakan & Bibit Ikan Hias</strong>
     <button class="close-btn" onclick="closeDrawers()">&#10005;</button>
   </div>
 
   <div class="shop-sec-title">&#127844; Stok Pakan & Booster Pertumbuhan</div>
-  <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom: 12px;"></div>
+  <div id="pelletShopList" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom: 14px;"></div>
 
   <div class="shop-sec-title" id="shopFishHeader">&#128031; Bibit Ikan Hias</div>
-  <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;"></div>
+  <div id="shopList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap:10px;"></div>
 </div>
 
 <!-- Fish Inspector / Dex Modal -->
@@ -187,9 +212,9 @@
 <!-- Offline Idle Reward Modal -->
 <div class="modal-bg" id="offlineModal" onclick="if(event.target===this) closeOfflineModal()">
   <div class="modal-card" style="text-align: center; border-color: #10b981;">
-    <div style="font-size: 34px; margin-bottom: 6px;">&#128176;</div>
-    <strong style="font-size: 16px; color: #10b981; display: block; margin-bottom: 6px;">Selamat Datang Kembali!</strong>
-    <p id="offlineMsg" style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;"></p>
+    <div style="font-size: 38px; margin-bottom: 8px;">&#128176;</div>
+    <strong style="font-size: 18px; color: #10b981; display: block; margin-bottom: 8px;">Selamat Datang Kembali!</strong>
+    <p id="offlineMsg" style="font-size: 14px; color: #cbd5e1; line-height: 1.5; margin-bottom: 16px;"></p>
     <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="closeOfflineModal()">Klaim Koin</button>
   </div>
 </div>
@@ -199,9 +224,9 @@
 <!-- Force Update Modal -->
 <div class="modal-bg" id="updateModal" style="z-index: 9999; background: rgba(4, 8, 13, 0.92);">
   <div class="modal-card" style="text-align: center; border-color: #f59e0b;">
-    <div style="font-size: 36px; margin-bottom: 6px;">&#128640;</div>
-    <strong style="font-size: 16px; color: #f59e0b; display: block; margin-bottom: 6px;">Update Tersedia!</strong>
-    <p style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;">
+    <div style="font-size: 38px; margin-bottom: 8px;">&#128640;</div>
+    <strong style="font-size: 18px; color: #f59e0b; display: block; margin-bottom: 8px;">Update Tersedia!</strong>
+    <p style="font-size: 14px; color: #cbd5e1; line-height: 1.5; margin-bottom: 16px;">
       Versi terbaru <b id="newVerText">v1.0.x</b> sudah rilis! Kamu wajib update ke versi terbaru untuk melanjutkan bermain Aquatopia.
     </p>
     <a id="downloadApkBtn" href="#" target="_blank" style="display: block; text-decoration: none;">
@@ -230,7 +255,7 @@ const LEFT_FACING_KEYS = new Set(['neon', 'discus', 'koi']);
 
 const DEFAULT_SPECIES = {
   neon: {
-    name: 'Neon Tetra', baseSize: 36, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
+    name: 'Neon Tetra', baseSize: 46, speed: 1.15, price: 45, fallbackColor: '#38bdf8',
     tiers: [
       { id: 'neon_1', name: 'Black Neon Tetra', rarity: 'Common', hue: 190, sat: 0.45, val: 0.9, sell: 35 },
       { id: 'neon_2', name: 'Cardinal Tetra', rarity: 'Rare', hue: -18, sat: 1.25, val: 1.05, sell: 110 },
@@ -238,7 +263,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   guppy: {
-    name: 'Guppy Dragon', baseSize: 48, speed: 0.95, price: 60, fallbackColor: '#ef4444',
+    name: 'Guppy Dragon', baseSize: 60, speed: 0.95, price: 60, fallbackColor: '#ef4444',
     tiers: [
       { id: 'guppy_1', name: 'Guppy Blue Grass', rarity: 'Common', hue: 145, sat: 0.85, val: 1.0, sell: 45 },
       { id: 'guppy_2', name: 'Guppy Tuxedo Red', rarity: 'Rare', hue: -18, sat: 1.1, val: 1.0, sell: 130 },
@@ -246,7 +271,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   oranda: {
-    name: 'Koki Oranda', baseSize: 64, speed: 0.55, price: 80, fallbackColor: '#f97316',
+    name: 'Koki Oranda', baseSize: 82, speed: 0.55, price: 80, fallbackColor: '#f97316',
     tiers: [
       { id: 'oranda_1', name: 'Oranda Red Cap', rarity: 'Common', hue: -12, sat: 0.85, val: 1.05, sell: 60 },
       { id: 'oranda_2', name: 'Oranda Tricolor', rarity: 'Rare', hue: 14, sat: 1.15, val: 1.0, sell: 160 },
@@ -254,7 +279,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   betta: {
-    name: 'Cupang Halfmoon', baseSize: 58, speed: 0.65, price: 90, fallbackColor: '#3b82f6',
+    name: 'Cupang Halfmoon', baseSize: 74, speed: 0.65, price: 90, fallbackColor: '#3b82f6',
     tiers: [
       { id: 'betta_1', name: 'Halfmoon Royal Blue', rarity: 'Common', hue: -25, sat: 0.9, val: 0.95, sell: 70 },
       { id: 'betta_2', name: 'Halfmoon Bicolor', rarity: 'Rare', hue: 28, sat: 1.2, val: 1.05, sell: 180 },
@@ -262,7 +287,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   manfish: {
-    name: 'Manfish Angel', baseSize: 68, speed: 0.5, price: 110, fallbackColor: '#eab308',
+    name: 'Manfish Angel', baseSize: 86, speed: 0.5, price: 110, fallbackColor: '#eab308',
     tiers: [
       { id: 'manfish_1', name: 'Manfish Silver Zebra', rarity: 'Common', hue: 0, sat: 0.15, val: 1.05, sell: 85 },
       { id: 'manfish_2', name: 'Manfish Golden', rarity: 'Rare', hue: 18, sat: 1.25, val: 1.08, sell: 210 },
@@ -270,7 +295,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   discus: {
-    name: 'Discus Royal', baseSize: 66, speed: 0.42, price: 140, fallbackColor: '#fb7185',
+    name: 'Discus Royal', baseSize: 84, speed: 0.42, price: 140, fallbackColor: '#fb7185',
     tiers: [
       { id: 'discus_1', name: 'Discus Pigeon Blood', rarity: 'Common', hue: 12, sat: 0.9, val: 1.02, sell: 110 },
       { id: 'discus_2', name: 'Discus Turquoise', rarity: 'Rare', hue: 175, sat: 1.2, val: 1.0, sell: 270 },
@@ -278,7 +303,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   koi: {
-    name: 'Koi Kohaku', baseSize: 88, speed: 0.62, price: 190, fallbackColor: '#f43f5e',
+    name: 'Koi Kohaku', baseSize: 112, speed: 0.62, price: 190, fallbackColor: '#f43f5e',
     tiers: [
       { id: 'koi_1', name: 'Koi Bekko', rarity: 'Common', hue: 25, sat: 0.65, val: 1.02, sell: 145 },
       { id: 'koi_2', name: 'Koi Sanke', rarity: 'Rare', hue: -8, sat: 1.15, val: 1.04, sell: 360 },
@@ -286,7 +311,7 @@ const DEFAULT_SPECIES = {
     ]
   },
   arowana: {
-    name: 'Arwana', baseSize: 105, speed: 0.72, price: 220, fallbackColor: '#dc2626',
+    name: 'Arwana', baseSize: 132, speed: 0.72, price: 220, fallbackColor: '#dc2626',
     tiers: [
       { id: 'arowana_1', name: 'Arwana Silver', rarity: 'Common', hue: 0, sat: 0.12, val: 1.15, sell: 170 },
       { id: 'arowana_2', name: 'Arwana Golden Crossback', rarity: 'Rare', hue: 36, sat: 1.35, val: 1.12, sell: 450 },
@@ -322,10 +347,34 @@ const ctx = canvas.getContext('2d');
 let W = canvas.width = window.innerWidth;
 let H = canvas.height = window.innerHeight;
 
-window.addEventListener('resize', () => {
+// Skala responsif agar ikan & koin selalu besar dan proporsional di mode Vertikal maupun Horizontal
+function getResponsiveScale() {
+  const shortSide = Math.min(W, H);
+  return Math.max(1.15, Math.min(1.65, shortSide / 330));
+}
+
+function handleResize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
+  if (typeof state !== 'undefined' && state.fishes) {
+    state.fishes.forEach(f => {
+      f.x = Math.min(Math.max(55, f.x), W - 55);
+      f.y = Math.min(Math.max(65, f.y), H - 75);
+    });
+  }
+}
+
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => {
+  setTimeout(handleResize, 150);
 });
+
+// Aktifkan Fullscreen saat layar disentuh pertama kali
+document.addEventListener('pointerdown', () => {
+  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, { once: true });
 
 // Sprite Loader & Background Remover (Otomatis hapus latar hitam & balik arah hadap kanan)
 const processedSprites = {};
@@ -662,7 +711,7 @@ let coinDrops = [];
 let floatingTexts = [];
 let bubbles = Array.from({ length: 24 }, () => ({
   x: Math.random() * W, y: Math.random() * H,
-  r: 1.2 + Math.random() * 2.8, speed: 0.4 + Math.random() * 0.9
+  r: 1.5 + Math.random() * 3.2, speed: 0.4 + Math.random() * 0.9
 }));
 
 // Web Audio
@@ -725,10 +774,11 @@ canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const tx = e.clientX - rect.left;
   const ty = e.clientY - rect.top;
+  const rScale = getResponsiveScale();
 
   for (let i = state.fishes.length - 1; i >= 0; i--) {
     const f = state.fishes[i];
-    const r = SPECIES[f.species].baseSize * (0.45 + (f.growth / 100) * 0.55) * 0.6;
+    const r = SPECIES[f.species].baseSize * rScale * (0.45 + (f.growth / 100) * 0.55) * 0.65;
     if (Math.hypot(tx - f.x, ty - f.y) <= r) {
       inspectFish(f);
       return;
@@ -755,7 +805,7 @@ canvas.addEventListener('pointerdown', (e) => {
       cooldownCut: fInfo.cooldownCut,
       color: fInfo.color
     });
-    spawnFloatingText(tx, ty - 8, `-1 ${fInfo.name}`, fInfo.color);
+    spawnFloatingText(tx, ty - 10, `-1 ${fInfo.name}`, fInfo.color);
     playTone(520, 0.08);
   } else if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
     pellets.push({ x: tx, y: ty, vy: 0.65, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
@@ -780,7 +830,7 @@ function dropFoodCluster() {
   if (curStock <= 0) {
     if (state.coins < 300 && state.fishes.length <= 2 && getTotalAllFeeds() === 0) {
       for (let i = 0; i < Math.min(2, hungryAvail); i++) {
-        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 50, vy: 0.6, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
+        pellets.push({ x: W * (0.3 + Math.random() * 0.4), y: 65, vy: 0.6, type: 'regular', boost: 1, cooldownCut: 1, color: '#f59e0b' });
       }
       showToast('Remah pakan darurat ditebar!');
       return;
@@ -796,8 +846,8 @@ function dropFoodCluster() {
 
   for (let i = 0; i < toDrop; i++) {
     pellets.push({
-      x: W * (0.25 + Math.random() * 0.5),
-      y: 45 + Math.random() * 25,
+      x: W * (0.2 + Math.random() * 0.6),
+      y: 65 + Math.random() * 30,
       vy: 0.55 + Math.random() * 0.3,
       type: fType,
       boost: fInfo.boost,
@@ -805,18 +855,19 @@ function dropFoodCluster() {
       color: fInfo.color
     });
   }
-  spawnFloatingText(W * 0.5, H - 65, `-${toDrop} ${fInfo.name}`, fInfo.color);
+  spawnFloatingText(W * 0.5, H - 85, `-${toDrop} ${fInfo.name}`, fInfo.color);
   playTone(620, 0.1);
 }
 
 // Draw Solid HD Fish (Semua base sprite menghadap ke KANAN)
 function drawFish(f, time) {
   const sp = SPECIES[f.species];
-  const scaleFactor = 0.42 + (f.growth / 100) * 0.58;
+  const rScale = getResponsiveScale();
+  const scaleFactor = (0.45 + (f.growth / 100) * 0.55) * rScale;
   const sprite = getTintedSprite(f.species, f.tier);
 
   if (sprite) {
-    const targetW = sp.baseSize * 1.45 * scaleFactor;
+    const targetW = sp.baseSize * 1.48 * scaleFactor;
     const aspect = sprite.height / sprite.width;
     const targetH = targetW * aspect;
 
@@ -843,7 +894,7 @@ function drawFish(f, time) {
     }
     ctx.restore();
   } else {
-    const r = sp.baseSize * 0.45 * scaleFactor;
+    const r = sp.baseSize * 0.48 * scaleFactor;
     const wag = Math.sin(time * 7 + f.phase) * (r * 0.35);
     ctx.save();
     ctx.translate(f.x, f.y);
@@ -873,7 +924,7 @@ function drawFish(f, time) {
 // Draw 3D Metallic Gold Coin
 function drawGoldCoin(x, y, t) {
   const spinScale = 0.75 + Math.abs(Math.cos(t * 4)) * 0.25;
-  const r = 11;
+  const r = 13;
 
   ctx.save();
   ctx.translate(x, y);
@@ -894,7 +945,7 @@ function drawGoldCoin(x, y, t) {
 
   ctx.shadowBlur = 0;
   ctx.strokeStyle = '#fef9c3';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.6;
   ctx.stroke();
 
   ctx.strokeStyle = '#ca8a04';
@@ -904,7 +955,7 @@ function drawGoldCoin(x, y, t) {
   ctx.stroke();
 
   ctx.fillStyle = '#fef9c3';
-  ctx.font = 'bold 11px sans-serif';
+  ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('$', 0, 0.5);
@@ -954,22 +1005,22 @@ function loop(now) {
       ctx.translate(p.x, p.y);
       ctx.rotate(Math.sin(time * 8 + i) * 0.4);
       ctx.beginPath();
-      ctx.ellipse(0, 0, 6, 2.2, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 7.5, 2.8, 0, 0, Math.PI * 2);
       ctx.fill();
     } else if (p.type === 'shrimp') {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 4.6, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#f3e8ff';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
     } else {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 3.4, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 4.2, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
-    if (p.y > H - 24) pellets.splice(i, 1);
+    if (p.y > H - 28) pellets.splice(i, 1);
   }
 
   // Fishes & Periodic Coin Drops from Adult Fish
@@ -998,11 +1049,11 @@ function loop(now) {
         const d = Math.hypot(p.x - f.x, p.y - f.y);
         if (d < bestD) { bestD = d; nearest = p; }
       });
-      if (bestD < 260) {
+      if (bestD < 280) {
         const ang = Math.atan2(nearest.y - f.y, nearest.x - f.x);
         f.vx += Math.cos(ang) * 0.045;
         f.vy += Math.sin(ang) * 0.045;
-        if (bestD < 22) {
+        if (bestD < 26) {
           pellets.splice(pellets.indexOf(nearest), 1);
           f.eatCooldown = 600;
           if (f.growth < 100) {
@@ -1011,7 +1062,7 @@ function loop(now) {
             saveGame();
           } else {
             f.dropTimer = Math.max(1.5, (f.dropTimer || 12) - (nearest.cooldownCut || 1));
-            spawnFloatingText(f.x, f.y - 18, 'Kenyang!', '#38bdf8');
+            spawnFloatingText(f.x, f.y - 20, 'Kenyang!', '#38bdf8');
           }
           playTone(760, 0.09);
         }
@@ -1024,7 +1075,7 @@ function loop(now) {
     if (Math.random() < 0.015) f.vy += (Math.random() - 0.5) * 0.25;
 
     f.x += f.vx; f.y += f.vy;
-    const padX = 55, padTop = 55, padBot = 55;
+    const padX = 55, padTop = 65, padBot = 75;
     if (f.x < padX) { f.x = padX; f.vx = Math.abs(f.vx); }
     if (f.x > W - padX) { f.x = W - padX; f.vx = -Math.abs(f.vx); }
     if (f.y < padTop) { f.y = padTop; f.vy = Math.abs(f.vy); }
@@ -1034,8 +1085,8 @@ function loop(now) {
   });
 
   // Auto-Magnet Coin Drops Flying to Top-Left HUD
-  const targetX = 45;
-  const targetY = 24;
+  const targetX = 52;
+  const targetY = 30;
 
   for (let i = coinDrops.length - 1; i >= 0; i--) {
     const c = coinDrops[i];
@@ -1049,19 +1100,19 @@ function loop(now) {
       const dy = targetY - c.y;
       const dist = Math.hypot(dx, dy);
 
-      if (dist < 24) {
+      if (dist < 26) {
         state.coins += c.val;
         updateHUD();
         saveGame();
         playTone(980, 0.12);
-        spawnFloatingText(targetX + 22, targetY + 18, `+${c.val}`, '#34d399');
+        spawnFloatingText(targetX + 24, targetY + 20, `+${c.val}`, '#34d399');
         coinDrops.splice(i, 1);
         continue;
       }
 
       const ang = Math.atan2(dy, dx);
-      c.x += Math.cos(ang) * 9;
-      c.y += Math.sin(ang) * 9;
+      c.x += Math.cos(ang) * 9.5;
+      c.y += Math.sin(ang) * 9.5;
     }
 
     drawGoldCoin(c.x, c.y, time + i);
@@ -1070,7 +1121,7 @@ function loop(now) {
   // Floating Texts
   for (let i = floatingTexts.length - 1; i >= 0; i--) {
     const ft = floatingTexts[i];
-    ft.y -= 0.7;
+    ft.y -= 0.75;
     ft.alpha -= 0.018;
     if (ft.alpha <= 0) {
       floatingTexts.splice(i, 1);
@@ -1079,7 +1130,7 @@ function loop(now) {
     ctx.save();
     ctx.globalAlpha = ft.alpha;
     ctx.fillStyle = ft.color;
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(ft.text, ft.x, ft.y);
     ctx.restore();
@@ -1087,7 +1138,7 @@ function loop(now) {
 
   // Bubbles
   ctx.strokeStyle = 'rgba(224, 242, 254, 0.45)';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.2;
   bubbles.forEach(b => {
     b.y -= b.speed;
     b.x += Math.sin(time * 2 + b.y * 0.03) * 0.3;
@@ -1202,10 +1253,10 @@ function populateShop() {
     const borderCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.55)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.28)');
     const bgCol = p.feedType === 'shrimp' ? 'rgba(168,85,247,0.18)' : (p.feedType === 'worm' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)');
     return `
-      <div style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:12px; padding:9px;">
-        <div style="font-weight:700; font-size:12px; color:#f8fafc;">${fInfo.icon} ${p.label}</div>
-        <div style="font-size:10.5px; color:#cbd5e1; margin:2px 0 7px;">Tumbuh <b>+${fInfo.boost}%</b> / suap</div>
-        <button class="btn-mini btn-feed" style="width:100%; justify-content:center;" onclick="buyPelletPack('${p.id}')">&#129689; ${p.price.toLocaleString('id-ID')}</button>
+      <div style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:12px; padding:10px;">
+        <div style="font-weight:700; font-size:13px; color:#f8fafc;">${fInfo.icon} ${p.label}</div>
+        <div style="font-size:11.5px; color:#cbd5e1; margin:3px 0 8px;">Tumbuh <b>+${fInfo.boost}%</b> / suap</div>
+        <button class="btn-mini btn-feed" style="width:100%; justify-content:center; padding:8px 12px;" onclick="buyPelletPack('${p.id}')">&#129689; ${p.price.toLocaleString('id-ID')}</button>
       </div>
     `;
   }).join('');
@@ -1214,10 +1265,10 @@ function populateShop() {
   list.innerHTML = Object.keys(SPECIES).map(k => {
     const sp = SPECIES[k];
     return `
-      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px;">
-        <div style="font-weight:700; font-size:12.5px;">${sp.name}</div>
-        <div style="font-size:11px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak &#9794;/&#9792;</div>
-        <button class="btn-mini btn-breed-open" style="width:100%; justify-content:center;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
+      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:11px;">
+        <div style="font-weight:700; font-size:13.5px;">${sp.name}</div>
+        <div style="font-size:12px; color:#94a3b8; margin:3px 0 8px;">Bibit Acak &#9794;/&#9792;</div>
+        <button class="btn-mini btn-breed-open" style="width:100%; justify-content:center; padding:8px 12px;" onclick="buyFish('${k}')">&#129689; ${sp.price}</button>
       </div>
     `;
   }).join('');
@@ -1267,11 +1318,11 @@ function inspectFish(f) {
   const cdMin = Math.ceil((f.eatCooldown || 0) / 60);
   const statusMakan = (f.eatCooldown || 0) > 0 ? `Kenyang (${cdMin} mnt lagi)` : 'Lapar (Siap Makan)';
   document.getElementById('modalBody').innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <strong style="font-size:15px;">${t.name}</strong>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <strong style="font-size:17px;">${t.name}</strong>
       <button class="close-btn" onclick="closeModal()">&#10005;</button>
     </div>
-    <div style="font-size:12px; color:#cbd5e1; line-height:1.7; margin-bottom:12px;">
+    <div style="font-size:13.5px; color:#cbd5e1; line-height:1.75; margin-bottom:14px;">
       <div>Kelamin: <b>${f.gender === 'M' ? '&#9794; Jantan' : '&#9792; Betina'}</b></div>
       <div>Rarity: <b style="color:#f59e0b;">${t.rarity}</b></div>
       <div>Pertumbuhan: <b>${Math.round(f.growth)}% ${f.growth >= 100 ? '(Siap Kawin & Drop +' + dropVal + ' Koin)' : '(Anakan)'}</b></div>
@@ -1299,14 +1350,14 @@ function sellFish(id) {
 
 function openDex() {
   const totalVariants = Object.keys(SPECIES).length * 3;
-  let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <strong>&#128214; Katalog Mutasi (${state.unlocked.length}/${totalVariants})</strong>
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <strong style="font-size:16px;">&#128214; Katalog Mutasi (${state.unlocked.length}/${totalVariants})</strong>
     <button class="close-btn" onclick="closeModal()">&#10005;</button>
-  </div><div style="max-height:55vh; overflow-y:auto; font-size:12px;">`;
+  </div><div style="max-height:58vh; overflow-y:auto; font-size:13.5px;">`;
   Object.values(SPECIES).forEach(sp => {
     sp.tiers.forEach(t => {
       const ok = state.unlocked.includes(t.id);
-      html += `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between;">
+      html += `<div style="padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between;">
         <span>${ok ? '&#9989; ' + t.name : '&#128274; ???'}</span>
         <span style="color:#94a3b8;">${t.rarity}</span>
       </div>`;
