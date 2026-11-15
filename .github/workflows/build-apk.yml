@@ -41,14 +41,14 @@ jobs:
           ignored = {"bg-aquascape.jpg", "icon.png", "icon-only.png", "fishes-auto.js"}
 
           preset = {
-              "neon":    {"name": "Neon Tetra",      "baseSize": 36,  "speed": 1.15, "price": 45,  "tiers": ["Black Neon Tetra", "Cardinal Tetra", "Diamond Blue Neon"]},
-              "guppy":   {"name": "Guppy Dragon",    "baseSize": 48,  "speed": 0.95, "price": 60,  "tiers": ["Guppy Blue Grass", "Guppy Tuxedo Red", "Fancy Dragon Platinum"]},
-              "oranda":  {"name": "Koki Oranda",     "baseSize": 64,  "speed": 0.55, "price": 80,  "tiers": ["Oranda Red Cap", "Oranda Tricolor", "Oranda Calico Royal"]},
-              "betta":   {"name": "Cupang Halfmoon", "baseSize": 58,  "speed": 0.65, "price": 90,  "tiers": ["Halfmoon Royal Blue", "Halfmoon Bicolor", "Halfmoon Galaxy Neon"]},
-              "manfish": {"name": "Manfish Angel",   "baseSize": 68,  "speed": 0.50, "price": 110, "tiers": ["Manfish Silver Zebra", "Manfish Golden", "Koi Marble Angel"]},
-              "discus":  {"name": "Discus Royal",    "baseSize": 66,  "speed": 0.42, "price": 140, "tiers": ["Discus Pigeon Blood", "Discus Turquoise", "Red Melon Royal"]},
-              "koi":     {"name": "Koi Kohaku",      "baseSize": 88,  "speed": 0.62, "price": 190, "tiers": ["Koi Bekko", "Koi Sanke", "Tancho Kohaku"]},
-              "arowana": {"name": "Arwana",          "baseSize": 105, "speed": 0.72, "price": 220, "tiers": ["Arwana Silver", "Arwana Golden Crossback", "Super Red Arwana"]}
+              "neon":    {"name": "Neon Tetra",      "baseSize": 46,  "speed": 1.15, "price": 45,  "tiers": ["Black Neon Tetra", "Cardinal Tetra", "Diamond Blue Neon"]},
+              "guppy":   {"name": "Guppy Dragon",    "baseSize": 60,  "speed": 0.95, "price": 60,  "tiers": ["Guppy Blue Grass", "Guppy Tuxedo Red", "Fancy Dragon Platinum"]},
+              "oranda":  {"name": "Koki Oranda",     "baseSize": 82,  "speed": 0.55, "price": 80,  "tiers": ["Oranda Red Cap", "Oranda Tricolor", "Oranda Calico Royal"]},
+              "betta":   {"name": "Cupang Halfmoon", "baseSize": 74,  "speed": 0.65, "price": 90,  "tiers": ["Halfmoon Royal Blue", "Halfmoon Bicolor", "Halfmoon Galaxy Neon"]},
+              "manfish": {"name": "Manfish Angel",   "baseSize": 86,  "speed": 0.50, "price": 110, "tiers": ["Manfish Silver Zebra", "Manfish Golden", "Koi Marble Angel"]},
+              "discus":  {"name": "Discus Royal",    "baseSize": 84,  "speed": 0.42, "price": 140, "tiers": ["Discus Pigeon Blood", "Discus Turquoise", "Red Melon Royal"]},
+              "koi":     {"name": "Koi Kohaku",      "baseSize": 112, "speed": 0.62, "price": 190, "tiers": ["Koi Bekko", "Koi Sanke", "Tancho Kohaku"]},
+              "arowana": {"name": "Arwana",          "baseSize": 132, "speed": 0.72, "price": 220, "tiers": ["Arwana Silver", "Arwana Golden Crossback", "Super Red Arwana"]}
           }
 
           species_out = {}
@@ -66,7 +66,7 @@ jobs:
               else:
                   h_hash = int(hashlib.md5(key.encode()).hexdigest()[:6], 16)
                   disp_name = key.replace("_", " ").replace("-", " ").title()
-                  size = 55 + (h_hash % 35)
+                  size = 70 + (h_hash % 40)
                   spd = round(0.48 + ((h_hash >> 4) % 45) / 100, 2)
                   price = 100 + ((h_hash >> 8) % 10) * 15
                   tnames = [f"{disp_name} Classic", f"{disp_name} Golden", f"{disp_name} Royal Epic"]
@@ -90,10 +90,22 @@ jobs:
           print("Auto-scan aset sukses!")
           EOF
 
-      - name: Add and Sync Capacitor Android
+      - name: Add, Configure Orientation & Sync Capacitor Android
         run: |
           npm install @capacitor/android
           npx cap add android || true
+          python3 - << 'EOF'
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          with open(manifest_path, "r") as f:
+              content = f.read()
+          if "android:screenOrientation" in content:
+              import re
+              content = re.sub(r'android:screenOrientation="[^"]*"', 'android:screenOrientation="fullSensor"', content)
+          else:
+              content = content.replace('<activity', '<activity android:screenOrientation="fullSensor"', 1)
+          with open(manifest_path, "w") as f:
+              f.write(content)
+          EOF
           npx cap sync android
 
       - name: Build APK with Gradle
