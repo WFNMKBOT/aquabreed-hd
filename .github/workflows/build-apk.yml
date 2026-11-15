@@ -113,12 +113,18 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Sign & Prepare APK Output
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           mkdir -p build-output
           APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          keytool -genkey -v -keystore release.keystore -alias aquatopia -keyalg RSA -keysize 2048 -validity 10000 -storepass android123 -keypass android123 -dname "CN=Aquatopia, OU=Game, O=WFN, L=Tangerang, S=Banten, C=ID"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          else
+            keytool -genkey -v -keystore android/app/release.keystore -alias wadirect -keyalg RSA -keysize 2048 -validity 10000 -storepass wadirect123 -keypass wadirect123 -dname "CN=Wahyu Firman Nugraha, O=WFN, L=Tangerang, S=Banten, C=ID"
+          fi
           APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -V | tail -n 1)
-          $APKSIGNER sign --ks release.keystore --ks-pass pass:android123 --out build-output/Aquatopia.apk "$APK_FILE"
+          $APKSIGNER sign --ks android/app/release.keystore --ks-key-alias wadirect --ks-pass pass:wadirect123 --key-pass pass:wadirect123 --out build-output/Aquatopia.apk "$APK_FILE"
 
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
