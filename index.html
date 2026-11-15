@@ -13,7 +13,7 @@
     }
     canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
 
-    /* Top HUD - Ringan tanpa blur berat */
+    /* Top HUD - Besar, Responsif & Ringan */
     .hud-top {
       position: fixed; top: max(12px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
       right: max(14px, env(safe-area-inset-right));
@@ -356,12 +356,12 @@ document.addEventListener('pointerdown', () => {
   }
 }, { once: true });
 
-// Sprite Loader & Fast Memory-Only Background Remover (100x lebih cepat)
+// Sprite Loader & Fast Memory-Only Background Remover
 const processedSprites = {};
 let bgImage = null;
 
 function prepareSpriteClean(img, speciesKey) {
-  const maxDim = 320; // Ukuran optimal untuk mobile WebView (tajam & sangat ringan di RAM/GPU)
+  const maxDim = 320;
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
   const w = Math.max(1, Math.round(img.width * scale));
   const h = Math.max(1, Math.round(img.height * scale));
@@ -408,7 +408,6 @@ function prepareSpriteClean(img, speciesKey) {
 
   octx.putImageData(imgData, 0, 0);
 
-  // Cari bounding box langsung dari array memori `data` (tanpa getImageData berulang!)
   let minX = w, maxX = 0, minY = h, maxY = 0;
   for (let y = 0; y < h; y++) {
     const rowOffset = y * w;
@@ -552,7 +551,7 @@ function loadAllAssets() {
         processedSprites[`${key}_base`] = prepareSpriteClean(img, key);
       };
       img.src = ASSET_PATHS[key];
-    }, idx * 25); // Bertahap 25ms per gambar agar UI langsung responsif saat app dibuka
+    }, idx * 25);
   });
 }
 
