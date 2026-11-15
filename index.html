@@ -13,7 +13,7 @@
     }
     canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
 
-    /* Top HUD - Diperbesar & Responsif */
+    /* Top HUD - Ringan tanpa blur berat */
     .hud-top {
       position: fixed; top: max(12px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
       right: max(14px, env(safe-area-inset-right));
@@ -22,24 +22,24 @@
     }
     .hud-group { display: flex; align-items: center; gap: 8px; pointer-events: auto; flex-wrap: wrap; }
     .pill {
-      background: rgba(8, 15, 26, 0.78); backdrop-filter: blur(12px);
-      border: 1.5px solid rgba(56, 189, 248, 0.32); border-radius: 999px;
+      background: rgba(8, 15, 26, 0.88);
+      border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 999px;
       padding: 8px 15px; font-size: clamp(13.5px, 1.9vw, 16px); font-weight: 700;
       display: flex; align-items: center; gap: 7px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
     }
-    .pill-btn { cursor: pointer; transition: transform 0.12s, border-color 0.2s; }
+    .pill-btn { cursor: pointer; transition: transform 0.12s; }
     .pill-btn:active { transform: scale(0.94); }
     .feed-pill { border-color: rgba(245, 158, 11, 0.55); }
 
-    /* Bottom Floating Dock - Lebih Besar & Nyaman Disentuh */
+    /* Bottom Floating Dock */
     .dock-mini {
       position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%;
       transform: translateX(-50%); z-index: 25;
-      background: rgba(8, 15, 26, 0.86); backdrop-filter: blur(14px);
-      border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 999px;
+      background: rgba(8, 15, 26, 0.92);
+      border: 1.5px solid rgba(56, 189, 248, 0.42); border-radius: 999px;
       padding: 7px 11px; display: flex; align-items: center; gap: 9px;
-      box-shadow: 0 10px 28px rgba(0,0,0,0.65);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.65);
       white-space: nowrap;
       max-width: 95vw;
     }
@@ -53,35 +53,22 @@
     .btn-breed-open { background: linear-gradient(135deg, #0284c7, #2563eb); }
     .btn-shop-open { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22); }
 
-    /* Penyesuaian Layar Vertikal (Portrait) */
     @media (orientation: portrait) {
-      .hud-top {
-        top: max(18px, env(safe-area-inset-top));
-      }
-      .pill {
-        padding: 9px 14px;
-        font-size: 14px;
-      }
-      .dock-mini {
-        bottom: max(22px, env(safe-area-inset-bottom));
-        padding: 8px 10px;
-        gap: 7px;
-      }
-      .btn-mini {
-        padding: 11px 15px;
-        font-size: 14px;
-      }
+      .hud-top { top: max(18px, env(safe-area-inset-top)); }
+      .pill { padding: 9px 14px; font-size: 14px; }
+      .dock-mini { bottom: max(22px, env(safe-area-inset-bottom)); padding: 8px 10px; gap: 7px; }
+      .btn-mini { padding: 11px 15px; font-size: 14px; }
     }
 
     /* Expandable Drawer */
     .drawer {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(105%);
       width: min(600px, 96vw); max-height: 82vh; overflow-y: auto;
-      background: rgba(9, 16, 28, 0.96); backdrop-filter: blur(16px);
+      background: rgba(9, 16, 28, 0.97);
       border: 1.5px solid rgba(56, 189, 248, 0.4); border-bottom: none;
       border-radius: 22px 22px 0 0; padding: 18px 18px max(22px, env(safe-area-inset-bottom));
-      z-index: 30; transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+      z-index: 30; transition: transform 0.25s ease-out;
+      box-shadow: 0 -10px 35px rgba(0,0,0,0.8);
     }
     .drawer.open { transform: translateX(-50%) translateY(0); }
     .drawer-header {
@@ -98,9 +85,7 @@
       margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .breed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    @media (max-width: 420px) {
-      .breed-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 420px) { .breed-grid { grid-template-columns: 1fr; } }
     .slot-box {
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
       border-radius: 12px; padding: 10px;
@@ -120,13 +105,12 @@
       width: 100%; padding: 12px; border: none; border-radius: 14px;
       background: linear-gradient(135deg, #f59e0b, #ea580c);
       color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
     }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Modal */
     .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.68); backdrop-filter: blur(5px);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
       display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px;
     }
     .modal-bg.show { display: flex; }
@@ -136,9 +120,9 @@
     }
     .toast {
       position: fixed; top: 68px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.94); border: 1.5px solid #38bdf8;
+      background: rgba(15, 23, 42, 0.95); border: 1.5px solid #38bdf8;
       padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-      z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.2s;
       white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
     }
     .toast.show { opacity: 1; }
@@ -343,11 +327,10 @@ const PELLET_PACKS = [
 ];
 
 const canvas = document.getElementById('tank');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false });
 let W = canvas.width = window.innerWidth;
 let H = canvas.height = window.innerHeight;
 
-// Skala responsif agar ikan & koin selalu besar dan proporsional di mode Vertikal maupun Horizontal
 function getResponsiveScale() {
   const shortSide = Math.min(W, H);
   return Math.max(1.15, Math.min(1.65, shortSide / 330));
@@ -365,42 +348,36 @@ function handleResize() {
 }
 
 window.addEventListener('resize', handleResize);
-window.addEventListener('orientationchange', () => {
-  setTimeout(handleResize, 150);
-});
+window.addEventListener('orientationchange', () => setTimeout(handleResize, 150));
 
-// Aktifkan Fullscreen saat layar disentuh pertama kali
 document.addEventListener('pointerdown', () => {
   if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => {});
   }
 }, { once: true });
 
-// Sprite Loader & Background Remover (Otomatis hapus latar hitam & balik arah hadap kanan)
+// Sprite Loader & Fast Memory-Only Background Remover (100x lebih cepat)
 const processedSprites = {};
 let bgImage = null;
 
 function prepareSpriteClean(img, speciesKey) {
-  const maxDim = 640;
+  const maxDim = 320; // Ukuran optimal untuk mobile WebView (tajam & sangat ringan di RAM/GPU)
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-  const w = Math.round(img.width * scale);
-  const h = Math.round(img.height * scale);
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
 
   const off = document.createElement('canvas');
   off.width = w; off.height = h;
   const octx = off.getContext('2d');
-  octx.imageSmoothingEnabled = true;
-  octx.imageSmoothingQuality = 'high';
   octx.drawImage(img, 0, 0, w, h);
 
   const imgData = octx.getImageData(0, 0, w, h);
   const data = imgData.data;
 
-  // Deteksi warna latar dari sudut
   const cornerR = (data[0] + data[(w-1)*4] + data[((h-1)*w)*4] + data[((h-1)*w+(w-1))*4]) / 4;
   const cornerG = (data[1] + data[(w-1)*4+1] + data[((h-1)*w)*4+1] + data[((h-1)*w+(w-1))*4+1]) / 4;
   const cornerB = (data[2] + data[(w-1)*4+2] + data[((h-1)*w)*4+2] + data[((h-1)*w+(w-1))*4+2]) / 4;
-  const isDarkBg = (cornerR < 35 && cornerG < 35 && cornerB < 35);
+  const isDarkBg = (cornerR < 38 && cornerG < 38 && cornerB < 38);
 
   if (isDarkBg) {
     const visited = new Uint8Array(w * h);
@@ -419,33 +396,24 @@ function prepareSpriteClean(img, speciesKey) {
       const p = queue[head++];
       const px = p % w, py = (p / w) | 0;
       const idx = p * 4;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-
-      if (r <= 32 && g <= 32 && b <= 32) {
+      if (data[idx] <= 34 && data[idx + 1] <= 34 && data[idx + 2] <= 34) {
         data[idx + 3] = 0;
-        const neighbors = [
-          px > 0 ? p - 1 : -1,
-          px < w - 1 ? p + 1 : -1,
-          py > 0 ? p - w : -1,
-          py < h - 1 ? p + w : -1
-        ];
-        for (let i = 0; i < 4; i++) {
-          const np = neighbors[i];
-          if (np >= 0 && !visited[np]) {
-            visited[np] = 1;
-            queue[tail++] = np;
-          }
-        }
+        if (px > 0 && !visited[p - 1]) { visited[p - 1] = 1; queue[tail++] = p - 1; }
+        if (px < w - 1 && !visited[p + 1]) { visited[p + 1] = 1; queue[tail++] = p + 1; }
+        if (py > 0 && !visited[p - w]) { visited[p - w] = 1; queue[tail++] = p - w; }
+        if (py < h - 1 && !visited[p + w]) { visited[p + w] = 1; queue[tail++] = p + w; }
       }
     }
   }
 
   octx.putImageData(imgData, 0, 0);
 
+  // Cari bounding box langsung dari array memori `data` (tanpa getImageData berulang!)
   let minX = w, maxX = 0, minY = h, maxY = 0;
   for (let y = 0; y < h; y++) {
+    const rowOffset = y * w;
     for (let x = 0; x < w; x++) {
-      if (octx.getImageData(x, y, 1, 1).data[3] > 15) {
+      if (data[(rowOffset + x) * 4 + 3] > 15) {
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
@@ -454,14 +422,15 @@ function prepareSpriteClean(img, speciesKey) {
     }
   }
 
+  if (maxX < minX || maxY < minY) { minX = 0; minY = 0; maxX = w - 1; maxY = h - 1; }
+
   const cw = Math.max(1, maxX - minX + 1);
   const ch = Math.max(1, maxY - minY + 1);
   const cropped = document.createElement('canvas');
   cropped.width = cw; cropped.height = ch;
   const cctx = cropped.getContext('2d');
 
-  const isLeft = LEFT_FACING_KEYS.has(speciesKey);
-  if (isLeft) {
+  if (LEFT_FACING_KEYS.has(speciesKey)) {
     cctx.translate(cw, 0);
     cctx.scale(-1, 1);
   }
@@ -537,10 +506,7 @@ function getTintedSprite(speciesKey, tierIndex) {
     s = Math.min(1, Math.max(0, s * tier.sat));
     l = Math.min(1, Math.max(0, l * tier.val));
     const [nr, ng, nb] = hslToRgb(h, s, l);
-    d[i] = nr;
-    d[i + 1] = ng;
-    d[i + 2] = nb;
-    d[i + 3] = a;
+    d[i] = nr; d[i + 1] = ng; d[i + 2] = nb; d[i + 3] = a;
   }
 
   cx.putImageData(imgData, 0, 0);
@@ -548,7 +514,7 @@ function getTintedSprite(speciesKey, tierIndex) {
   return c;
 }
 
-// Force Update Checker via GitHub Releases
+// Force Update Checker
 const CURRENT_VERSION = "__APP_VERSION__";
 const GITHUB_REPO = "WFNMKBOT/aquabreed-hd";
 
@@ -570,24 +536,23 @@ async function checkForceUpdate() {
       document.getElementById("downloadApkBtn").href = apkAsset ? apkAsset.browser_download_url : fallbackUrl;
       document.getElementById("updateModal").classList.add("show");
     }
-  } catch (e) {
-    console.log("Offline mode, skip update check.");
-  }
+  } catch (e) {}
 }
 
 function loadAllAssets() {
   const bg = new Image();
-  bg.src = ASSET_PATHS.bg;
   bg.onload = () => { bgImage = bg; };
+  bg.src = ASSET_PATHS.bg;
 
-  Object.keys(ASSET_PATHS).forEach(key => {
-    if (key === 'bg') return;
-    const src = ASSET_PATHS[key];
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      processedSprites[`${key}_base`] = prepareSpriteClean(img, key);
-    };
+  const keys = Object.keys(ASSET_PATHS).filter(k => k !== 'bg');
+  keys.forEach((key, idx) => {
+    setTimeout(() => {
+      const img = new Image();
+      img.onload = () => {
+        processedSprites[`${key}_base`] = prepareSpriteClean(img, key);
+      };
+      img.src = ASSET_PATHS[key];
+    }, idx * 25); // Bertahap 25ms per gambar agar UI langsung responsif saat app dibuka
   });
 }
 
@@ -614,27 +579,21 @@ let state = getDefaultState();
 
 function saveGame() {
   try {
-    const payload = {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
       coins: state.coins,
       pellets: state.pellets,
       activeFeed: state.activeFeed,
       unlocked: state.unlocked,
       fishes: state.fishes,
       lastSaved: Date.now()
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-  } catch (e) {
-    console.warn('Auto-save failed:', e);
-  }
+    }));
+  } catch (e) {}
 }
 
 function loadGame() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) {
-      saveGame();
-      return;
-    }
+    if (!raw) { saveGame(); return; }
     const saved = JSON.parse(raw);
     if (typeof saved.coins === 'number') state.coins = saved.coins;
 
@@ -648,10 +607,7 @@ function loadGame() {
       };
     }
 
-    if (saved.activeFeed && FEED_TYPES[saved.activeFeed]) {
-      state.activeFeed = saved.activeFeed;
-    }
-
+    if (saved.activeFeed && FEED_TYPES[saved.activeFeed]) state.activeFeed = saved.activeFeed;
     if (Array.isArray(saved.unlocked)) state.unlocked = saved.unlocked;
     if (Array.isArray(saved.fishes) && saved.fishes.length > 0) {
       state.fishes = saved.fishes
@@ -672,9 +628,7 @@ function loadGame() {
     if (saved.lastSaved) {
       const elapsedSecs = Math.max(0, Math.floor((Date.now() - saved.lastSaved) / 1000));
       state.fishes.forEach(f => {
-        if (f.eatCooldown > 0) {
-          f.eatCooldown = Math.max(0, f.eatCooldown - elapsedSecs);
-        }
+        if (f.eatCooldown > 0) f.eatCooldown = Math.max(0, f.eatCooldown - elapsedSecs);
       });
 
       const elapsedMins = Math.floor(elapsedSecs / 60);
@@ -690,9 +644,7 @@ function loadGame() {
       }
     }
     saveGame();
-  } catch (e) {
-    console.warn('Load save failed:', e);
-  }
+  } catch (e) {}
 }
 
 function closeOfflineModal() {
@@ -701,17 +653,15 @@ function closeOfflineModal() {
 }
 
 setInterval(saveGame, 5000);
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveGame();
-});
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 window.addEventListener('beforeunload', saveGame);
 
 let pellets = [];
 let coinDrops = [];
 let floatingTexts = [];
-let bubbles = Array.from({ length: 24 }, () => ({
+let bubbles = Array.from({ length: 18 }, () => ({
   x: Math.random() * W, y: Math.random() * H,
-  r: 1.5 + Math.random() * 3.2, speed: 0.4 + Math.random() * 0.9
+  r: 1.5 + Math.random() * 3.0, speed: 0.4 + Math.random() * 0.9
 }));
 
 // Web Audio
@@ -859,10 +809,9 @@ function dropFoodCluster() {
   playTone(620, 0.1);
 }
 
-// Draw Solid HD Fish (Semua base sprite menghadap ke KANAN)
-function drawFish(f, time) {
+// Draw Solid HD Fish (Optimized 8-slice wave)
+function drawFish(f, time, rScale) {
   const sp = SPECIES[f.species];
-  const rScale = getResponsiveScale();
   const scaleFactor = (0.45 + (f.growth / 100) * 0.55) * rScale;
   const sprite = getTintedSprite(f.species, f.tier);
 
@@ -872,24 +821,20 @@ function drawFish(f, time) {
     const targetH = targetW * aspect;
 
     ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
     ctx.translate(f.x, f.y);
     if (f.vx < 0) ctx.scale(-1, 1);
 
-    const slices = 16;
+    const slices = 8;
     const sw = sprite.width / slices;
     const dw = targetW / slices;
 
     for (let i = 0; i < slices; i++) {
       const tailFactor = Math.pow(1 - i / slices, 1.6);
-      const waveY = Math.sin(time * 5.5 + f.phase - i * 0.4) * (4.5 * tailFactor * scaleFactor);
+      const waveY = Math.sin(time * 5.5 + f.phase - i * 0.75) * (4.5 * tailFactor * scaleFactor);
       ctx.drawImage(
         sprite,
-        i * sw, 0, sw + 0.6, sprite.height,
-        -targetW / 2 + i * dw, -targetH / 2 + waveY, dw + 0.6, targetH
+        i * sw, 0, sw + 0.8, sprite.height,
+        -targetW / 2 + i * dw, -targetH / 2 + waveY, dw + 0.8, targetH
       );
     }
     ctx.restore();
@@ -930,28 +875,13 @@ function drawGoldCoin(x, y, t) {
   ctx.translate(x, y);
   ctx.scale(spinScale, 1);
 
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-  ctx.shadowBlur = 4;
-
-  const grad = ctx.createLinearGradient(-r, -r, r, r);
-  grad.addColorStop(0, '#fef08a');
-  grad.addColorStop(0.5, '#eab308');
-  grad.addColorStop(1, '#a16207');
-
-  ctx.fillStyle = grad;
+  ctx.fillStyle = '#eab308';
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.shadowBlur = 0;
   ctx.strokeStyle = '#fef9c3';
   ctx.lineWidth = 1.6;
-  ctx.stroke();
-
-  ctx.strokeStyle = '#ca8a04';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.fillStyle = '#fef9c3';
@@ -969,6 +899,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   const time = now / 1000;
+  const rScale = getResponsiveScale();
 
   if (bgImage) {
     const imgRatio = bgImage.width / bgImage.height;
@@ -978,22 +909,9 @@ function loop(now) {
     else { drawW = H * imgRatio; ox = (W - drawW) / 2; }
     ctx.drawImage(bgImage, ox, oy, drawW, drawH);
   } else {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#0a2538'); grad.addColorStop(1, '#040c14');
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#071b29';
+    ctx.fillRect(0, 0, W, H);
   }
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  const rayGrad = ctx.createLinearGradient(W * 0.5, 0, W * 0.4, H * 0.85);
-  rayGrad.addColorStop(0, 'rgba(125, 211, 252, 0.14)');
-  rayGrad.addColorStop(1, 'rgba(125, 211, 252, 0)');
-  ctx.fillStyle = rayGrad;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.35, 0); ctx.lineTo(W * 0.72, 0);
-  ctx.lineTo(W * 0.9, H); ctx.lineTo(W * 0.15, H);
-  ctx.closePath(); ctx.fill();
-  ctx.restore();
 
   // Render Sinking Feed Items
   for (let i = pellets.length - 1; i >= 0; i--) {
@@ -1024,7 +942,8 @@ function loop(now) {
   }
 
   // Fishes & Periodic Coin Drops from Adult Fish
-  state.fishes.forEach(f => {
+  for (let idx = 0; idx < state.fishes.length; idx++) {
+    const f = state.fishes[idx];
     const sp = SPECIES[f.species];
     if (f.eatCooldown > 0) f.eatCooldown = Math.max(0, f.eatCooldown - dt);
 
@@ -1032,11 +951,10 @@ function loop(now) {
       f.dropTimer = (f.dropTimer ?? 18) - dt;
       if (f.dropTimer <= 0) {
         f.dropTimer = 20 + Math.random() * 12;
-        const dropVal = getFishDropValue(f.tier);
         coinDrops.push({
           x: f.x,
           y: f.y + 10,
-          val: dropVal,
+          val: getFishDropValue(f.tier),
           delay: 0.6,
           vy: -0.6
         });
@@ -1045,10 +963,11 @@ function loop(now) {
 
     if (pellets.length > 0 && (f.eatCooldown || 0) <= 0) {
       let nearest = pellets[0], bestD = Infinity;
-      pellets.forEach(p => {
+      for (let j = 0; j < pellets.length; j++) {
+        const p = pellets[j];
         const d = Math.hypot(p.x - f.x, p.y - f.y);
         if (d < bestD) { bestD = d; nearest = p; }
-      });
+      }
       if (bestD < 280) {
         const ang = Math.atan2(nearest.y - f.y, nearest.x - f.x);
         f.vx += Math.cos(ang) * 0.045;
@@ -1081,8 +1000,8 @@ function loop(now) {
     if (f.y < padTop) { f.y = padTop; f.vy = Math.abs(f.vy); }
     if (f.y > H - padBot) { f.y = H - padBot; f.vy = -Math.abs(f.vy); }
 
-    drawFish(f, time);
-  });
+    drawFish(f, time, rScale);
+  }
 
   // Auto-Magnet Coin Drops Flying to Top-Left HUD
   const targetX = 52;
@@ -1139,12 +1058,13 @@ function loop(now) {
   // Bubbles
   ctx.strokeStyle = 'rgba(224, 242, 254, 0.45)';
   ctx.lineWidth = 1.2;
-  bubbles.forEach(b => {
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
     b.y -= b.speed;
     b.x += Math.sin(time * 2 + b.y * 0.03) * 0.3;
     if (b.y < -10) { b.y = H + 10; b.x = Math.random() * W; }
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
-  });
+  }
 
   requestAnimationFrame(loop);
 }
